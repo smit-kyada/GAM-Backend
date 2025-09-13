@@ -1,9 +1,4 @@
-/****************************************************
- * ENCRYPTION / DECRYPTION / FILTER FUNCTIONS
- * Helper functions related to encrypting and decrypting passwords and filtering a query
 
- * FilterQuery: Filters query 
-****************************************************/
 
 import _ from "lodash";
 

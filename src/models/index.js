@@ -18,6 +18,8 @@ import AdManagerData from "./adManagerData";
 import BackupSitetable from "./backupSitetable";
 import Contact from "./contact";
 import Queries from "./queries";
+import DailyAdsManagerReport from "./dailyReport";
+import AdUnitReport from "./adUnitReport";
 
 export default {
     User,
@@ -31,6 +33,8 @@ export default {
     NotificationMessage,
     Applog,
     Deduction,
+    DailyAdsManagerReport,
+    AdUnitReport,
     CountryTable,
     Account,
     Adsense,

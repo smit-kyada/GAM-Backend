@@ -484,8 +484,6 @@ export default {
                 }).catch((error) => reject(error))
             })
         }),
-
-
     },
 
     Mutation: {

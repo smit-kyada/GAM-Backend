@@ -25,7 +25,7 @@ app.get('/auth', (req, res) => {
       // Ad Manager read scope
       // "https://www.googleapis.com/auth/dfatrafficking",
       // "https://www.googleapis.com/auth/dfareporting",
-      "https://www.googleapis.com/auth/dfp"
+      "https://www.googleapis.com/auth/admanager"
       // AdSense read scope (for existing functionality)
       // "https://www.googleapis.com/auth/adsense.readonly"
   ],

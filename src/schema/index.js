@@ -17,6 +17,8 @@ import AdsenseSchema from './adsense'
 import AdManagerSchema from './adManager'
 import ContactSchema from './contact'
 import QueriesSchema from './queries'
+import DailyAdsManagerReportSchema from './dailyReport'
+import AdUnitReportSchema from './adUnitReport'
 
 const linkSchema = gql`
   scalar Date
@@ -64,4 +66,6 @@ export default [
   AdManagerSchema,
   ContactSchema,
   QueriesSchema,
+  DailyAdsManagerReportSchema,
+  AdUnitReportSchema
 ]

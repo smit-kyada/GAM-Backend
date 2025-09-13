@@ -1,11 +1,15 @@
-import models from "../models";
-import { google } from "googleapis";
-import async from "async";
-import { AdsenseConvert, AdManagerConvert } from "./AdsenseConvert";
-import { GenerateAdsenseReportObj, GenerateAdManagerReportObj } from "./GenerateObj";
-import moment from "moment";
-import { AdsenseTotal } from "./AdsenseTotal";
-import "dotenv/config";
+import { ConsoleMessage } from "puppeteer";
+import AdManager from "../models/adManager";
+import axios from "axios";
+
+const models = require("../models");
+const { google } = require("googleapis");
+const async = require("async");
+const { AdsenseConvert, AdManagerConvert } = require("./AdsenseConvert");
+const { GenerateAdsenseReportObj, GenerateAdManagerReportObj } = require("./GenerateObj");
+const moment = require("moment");
+const { AdsenseTotal } = require("./AdsenseTotal");
+require("dotenv/config");
 
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -13,9 +17,15 @@ const oauth2Client = new google.auth.OAuth2(
     `${process.env.CALLBACK_URL}/auth/callback`,
 );
 
-models?.Adsense?.findOne({})
-    .then((res) => { oauth2Client.setCredentials(res) })
-    .catch((err) => { console.log("🚀 ~ file: GenerateAdsenseReport.js:18 ~ err:", err) })
+// models?.Adsense?.findOne({})
+//     .then((res) => { oauth2Client.setCredentials(res) })
+//     .catch((err) => { console.log("🚀 ~ file: GenerateAdsenseReport.js:18 ~ err:", err) });
+
+// models?.AdManager?.findOne({})
+//     .then((res) => { oauth2Client.setCredentials(res) })
+//     .catch((err) => { console.log("🚀 ~ file: GenerateAdsenseReport.js:18 ~ err:", err) });
+
+
 
 const startOfLastMonth = moment().subtract(1, 'months').startOf('month');
 const endOfLastMonth = moment().subtract(1, 'months').endOf('month');
@@ -340,170 +350,327 @@ export const getFullSiteReport = async (dateRange, report, site, countrycode) =>
 export const GenerateAdManagerReport = async () => {
     try {
         // Get tokens from database
-        const tokens = await models?.AdManager?.findOne({ isDeleted: false });
+        const tokens = await AdManager?.findOne({ isDeleted: false });
         if (!tokens) {
-            throw new Error("No Ad Manager tokens found");
+            console.log("No Ad Manager tokens found - skipping report generation");
+            return { status: false, message: "No Ad Manager tokens found" };
+        }
+
+        // Check if GAM_NETWORK_CODE is properly set
+        const networkCode = process.env.GAM_NETWORK_CODE;
+        if (!networkCode || networkCode === "123456789") {
+            console.log("Invalid GAM_NETWORK_CODE - skipping report generation");
+            return { status: false, message: "Invalid GAM_NETWORK_CODE configuration" };
         }
 
         // Set credentials
         oauth2Client.setCredentials(tokens);
 
-        // Create report query for Ad Manager
-        const reportQuery = {
-            dimensions: ["DATE", "AD_EXCHANGE_DOMAIN", "COUNTRY_NAME"],
-            columns: [
-                "AD_EXCHANGE_ESTIMATED_REVENUE",
-                "AD_EXCHANGE_IMPRESSIONS", 
-                "AD_EXCHANGE_CLICKS",
-                "AD_EXCHANGE_ECPM"
-            ],
-            dateRangeType: "LAST_7_DAYS"
-        };
-
+        try {
         // Call Ad Manager Report Service via REST API
-        const reportData = await getAdManagerReportData(reportQuery, oauth2Client);
-        const gamData = AdManagerConvert(reportData);
+            const reportData = await getAdManagerReportData(oauth2Client);
+            const gamData = AdManagerConvert(reportData);
 
-        let counter = 0;
-        return await async.eachSeries(
-            gamData?.total,
-            async (data, cb) => {
-                let SiteTableData = GenerateAdManagerReportObj(data);
-                const dates = SiteTableData?.date;
+            let counter = 0;
+            return await async.eachSeries(
+                gamData?.total,
+                async (data, cb) => {
+                    let SiteTableData = GenerateAdManagerReportObj(data);
+                    const dates = SiteTableData?.date;
 
-                if (typeof dates == "string" && dates?.includes("-")) {
-                    const dateString = SiteTableData?.date;
-                    const [year, month, day] = dateString?.split("-");
-                    const date = new Date(`${year}`, month - 1, day);
-                    SiteTableData.date = date;
+                    if (typeof dates == "string" && dates?.includes("-")) {
+                        const dateString = SiteTableData?.date;
+                        const [year, month, day] = dateString?.split("-");
+                        const date = new Date(`${year}`, month - 1, day);
+                        SiteTableData.date = date;
 
-                    await models?.SiteTable?.findOneAndUpdate({ site: SiteTableData?.site, date, isDeleted: false }, SiteTableData, { upsert: true, new: true })
-                        .then(async () => { counter++; })
-                        .catch((err) => { console.log("gam upsert err:", err) })
+                        await models?.SiteTable?.findOneAndUpdate({ site: SiteTableData?.site, date, isDeleted: false }, SiteTableData, { upsert: true, new: true })
+                            .then(async () => { counter++; })
+                            .catch((err) => { console.log("gam upsert err:", err) })
+                    }
+
+                    if (cb) cb();
+                }, async (err) => {
+                    if (err) {
+                        await models?.Applog?.create({ title: "Generate GAM Report Error", logFor: JSON.stringify(err) })
+                            .catch(() => { })
+                    }
+                    else if (gamData?.total?.length === counter) {
+                        await models?.Applog?.create({ title: "Report Auto Generate", logFor: "Generate GAM Report" })
+                            .catch(() => { })
+                    }
                 }
+            );
+        } catch (apiError) {
+            console.log("Ad Manager API error - using mock data:", apiError.message);
+            // Log the error but don't fail the login process
+            await models?.Applog?.create({
+                title: "Ad Manager API Error",
+                logFor: JSON.stringify(apiError)
+            }).catch(() => { });
 
-                if (cb) cb();
-            }, async (err) => {
-                if (err) {
-                    await models?.Applog?.create({ title: "Generate GAM Report Error", logFor: JSON.stringify(err) })
-                        .catch(() => { })
-                }
-                else if (gamData?.total?.length === counter) {
-                    await models?.Applog?.create({ title: "Report Auto Generate", logFor: "Generate GAM Report" })
-                        .catch(() => { })
-                }
-            }
-        )
+            return { status: true, message: "Login successful, but Ad Manager report generation skipped due to API error" };
+        }
     } catch (error) {
-        console.log("GenerateAdManagerReport error:", error)
+        console.log("GenerateAdManagerReport error:", error);
         await models?.Applog?.create({ title: "Generate GAM Report Error", logFor: JSON.stringify(error) })
-            .catch(() => { })
+            .catch(() => { });
+
+        // Don't fail the login process due to report generation errors
+        return { status: true, message: "Login successful, but Ad Manager report generation failed" };
     }
+}
+
+function processReportResults(reportData) {
+    // Check if reportData has rows
+    if (!reportData || !reportData.rows || reportData.rows.length === 0) {
+        console.log("No rows found in report.");
+        return [];
+    }
+
+    const { header, rows } = reportData;
+    const columnNames = header?.columns?.map(col => col.name) || [];
+
+    // Map rows to arrays of values
+    const processed = rows.map(row => {
+        return row.values.map(valueObj => {
+            // valueObj can have multiple types; prioritize string, then number
+            return valueObj.stringValue ?? valueObj.doubleValue ?? valueObj.integerValue ?? null;
+        });
+    });
+
+    // Return array with headers + data rows
+    return [columnNames, ...processed];
 }
 
 // Helper function to get Ad Manager report data via REST API
-const getAdManagerReportData = async (reportQuery, oauth2Client) => {
+// const getAdManagerReportData = async (reportQuery, oauth2Client) => {
+//     try {
+//         const accessToken = oauth2Client.credentials.access_token;
+//         const networkCode = process.env.GAM_NETWORK_CODE;
+
+//         console.log("Debug - GAM_NETWORK_CODE:", networkCode || "Not set");
+//         console.log("Debug - Access Token:", accessToken ? accessToken : "Missing");
+
+//         if (!networkCode || networkCode.trim() === '' || networkCode.includes('localhost') || networkCode.includes('http')) {
+//             console.log("GAM_NETWORK_CODE not set or invalid, using mock data");
+//             return [
+//                 ["DATE", "AD_EXCHANGE_DOMAIN", "AD_EXCHANGE_ESTIMATED_REVENUE", "AD_EXCHANGE_IMPRESSIONS", "AD_EXCHANGE_CLICKS"],
+//                 ["2025-01-31", "example.com", "15.50", "1000", "25"],
+//                 ["2025-01-31", "test.com", "8.75", "750", "12"]
+//             ];
+//         }
+
+//         try {
+//         const baseURL = 'https://admanager.googleapis.com/v1';
+//         const headers = {
+//             'Authorization': `Bearer ${accessToken}`,
+//             'Content-Type': 'application/json'
+//         };
+
+//         const reportRequest = {
+//             displayName: 'Ad Exchange Performance Report',
+//             reportDefinition: {
+//                 reportType: 'HISTORICAL',
+//                 dateRange: { relative: 'LAST_7_DAYS' },
+//                 dimensions: ['DOMAIN_NAME', 'DATE'],
+//                 metrics: [
+//                     'AD_EXCHANGE_CTR',
+//                     'AD_EXCHANGE_CPC',
+//                     'AD_EXCHANGE_CLICKS',
+//                     'AD_EXCHANGE_AVERAGE_ECPM',
+//                     'AD_EXCHANGE_REVENUE'
+//                 ],
+//                 timeZoneSource: 'PUBLISHER'
+//             }
+//         };
+
+//         console.log("Creating report via REST API...");
+//         const createResponse = await axios.post(
+//             `${baseURL}/networks/${networkCode}/reports`,
+//             reportRequest,
+//             { headers }
+//         );
+//         const reportName = createResponse.data.name;
+//         console.log("Report created:", reportName);
+
+//         console.log("Running report...");
+//         const runResponse = await axios.post(
+//             `${baseURL}/${reportName}:run`,
+//             {},
+//             { headers }
+//         );
+//         const operationName = runResponse.data.name;
+//         console.log("Report run operation:", operationName);
+
+//         // Step 3: Poll for completion
+//         let operationComplete = false;
+//         let attempts = 0;
+//         const maxAttempts = 12; // 5 minutes max wait time
+//         let reportData;
+
+//         while (!operationComplete && attempts < maxAttempts) {
+//             await new Promise(resolve => setTimeout(resolve, 10000)); // wait 10s
+
+//         try {
+//             const operationResponse = await axios.get(
+//                 `${baseURL}/${operationName}`,
+//                 { headers }
+//             );
+//             const operation = operationResponse.data;
+//             console.log("Operation response:", operation);
+
+//             if (operation.done) {
+//                 operationComplete = true;
+//                 if (operation.error) {
+//                     throw new Error(`Report failed: ${JSON.stringify(operation.error)}`);
+//                 }
+
+//                 const reportResult = operation.response.reportResult;
+//                 console.log("Report result location:", reportResult);
+
+//                 const resultsResponse = await axios.get(
+//                     `${baseURL}/${reportResult}:fetch?pageSize=1000`,
+//                     { headers }
+//                 );
+//                 reportData = resultsResponse.data;
+//                 console.log("Fetching report results...", reportData);
+//                 break; // ✅ stop polling after success
+//             }
+//         } catch (pollError) {
+//             console.log("Error polling operation:", pollError.message);
+//             break;
+//         }
+//         attempts++;
+//     }
+
+//     if (!operationComplete) {
+//         throw new Error("Report timed out after 5 minutes");
+//     }
+
+//     return processReportResults(reportData);
+
+// } catch (apiError) {
+//     console.log("REST API error:", apiError.response?.data || apiError.message);
+//     console.log("Status:", apiError.response?.status);
+
+//     return [
+//         ["DATE", "AD_EXCHANGE_DOMAIN", "AD_EXCHANGE_ESTIMATED_REVENUE", "AD_EXCHANGE_IMPRESSIONS", "AD_EXCHANGE_CLICKS"],
+//         ["2025-01-31", "example.com", "15.50", "1000", "25"],
+//         ["2025-01-31", "test.com", "8.75", "750", "12"]
+//     ];
+// }
+
+
+//     } catch (error) {
+//         console.log("getAdManagerReportData error:", error);
+//         return [
+//             ["DATE", "AD_EXCHANGE_DOMAIN", "AD_EXCHANGE_ESTIMATED_REVENUE", "AD_EXCHANGE_IMPRESSIONS", "AD_EXCHANGE_CLICKS"],
+//             ["2025-01-31", "example.com", "15.50", "1000", "25"],
+//             ["2025-01-31", "test.com", "8.75", "750", "12"]
+//         ];
+//     }
+// };
+
+const getAdManagerReportData = async (oauth2Client) => {
     try {
         const accessToken = oauth2Client.credentials.access_token;
         const networkCode = process.env.GAM_NETWORK_CODE;
-        
-        console.log("Debug - GAM_NETWORK_CODE:", networkCode);
-        console.log("Debug - Access Token:", accessToken ? "Present" : "Missing");
-        
-        if (!networkCode || networkCode.includes('localhost') || networkCode.includes('http')) {
-            console.log("GAM_NETWORK_CODE not set or invalid, using mock data");
-            // Return mock data if network code not set or invalid
-            return [
-                ["DATE", "AD_EXCHANGE_DOMAIN", "AD_EXCHANGE_ESTIMATED_REVENUE", "AD_EXCHANGE_IMPRESSIONS", "AD_EXCHANGE_CLICKS"],
-                ["2025-01-31", "example.com", "15.50", "1000", "25"],
-                ["2025-01-31", "test.com", "8.75", "750", "12"]
-            ];
-        }
 
-        // Use Google Ad Manager API (modern)
-        try {
-            // Get Ad Manager networks/profiles
-            const adManager = google.dfareporting('v4');
-            
-            // First get user profiles to find the correct profile ID
-            const profilesResult = await adManager.userProfiles.list({
-                auth: oauth2Client,
-            });
+      const baseURL = 'https://admanager.googleapis.com/v1';
+      const headers = {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+      };
 
-            if (!profilesResult.data.items || profilesResult.data.items.length === 0) {
-                console.log("No Ad Manager profiles found, using mock data");
-                return [
-                    ["DATE", "AD_EXCHANGE_DOMAIN", "AD_EXCHANGE_ESTIMATED_REVENUE", "AD_EXCHANGE_IMPRESSIONS", "AD_EXCHANGE_CLICKS"],
-                    ["2025-01-31", "example.com", "15.50", "1000", "25"],
-                    ["2025-01-31", "test.com", "8.75", "750", "12"]
-                ];
+      // ✅ Match UI Report (Domain + Date, CTR, CPC, Clicks, eCPM, Revenue)
+      const reportRequest = {
+          displayName: 'Ad Exchange Performance Report',
+          reportDefinition: {
+              reportType: 'HISTORICAL',
+              dateRange: { relative: 'LAST_7_DAYS' },
+              dimensions: ['ADVERTISER_DOMAIN_NAME', 'DATE'],
+              metrics: [
+                  'AD_EXCHANGE_CTR',
+                  'AD_EXCHANGE_CPC',
+                  'AD_EXCHANGE_CLICKS',
+                  'AD_EXCHANGE_AVERAGE_ECPM',
+                  'AD_EXCHANGE_REVENUE'
+              ],
+              timeZoneSource: 'PUBLISHER'
+          }
+    };
+
+      console.log("Creating report via REST API...");
+      const createResponse = await axios.post(
+          `${baseURL}/networks/${networkCode}/reports`,
+          reportRequest,
+          { headers }
+      );
+      const reportName = createResponse.data.name;
+      console.log("Report created:", reportName);
+
+      console.log("Running report...");
+      const runResponse = await axios.post(
+          `${baseURL}/${reportName}:run`,
+          {},
+          { headers }
+      );
+      const operationName = runResponse.data.name;
+      console.log("Report run operation:", operationName);
+
+      // Step 3: Poll for completion
+      let reportResult = null;
+      for (let i = 0; i < 12; i++) { // max 2 minutes
+          await new Promise(resolve => setTimeout(resolve, 10000)); // wait 10s
+
+        const operationResponse = await axios.get(`${baseURL}/${operationName}`, { headers });
+        const operation = operationResponse.data;
+
+        if (operation.done) {
+            if (operation.error) {
+                throw new Error(`Report failed: ${JSON.stringify(operation.error)}`);
             }
-
-            const profileId = profilesResult.data.items[0].profileId;
-            console.log("Using Ad Manager profile ID:", profileId);
-
-            // Create a report request for Ad Manager
-            const reportRequest = {
-                auth: oauth2Client,
-                profileId: profileId,
-                resource: {
-                    name: 'Ad Manager Performance Report',
-                    type: 'STANDARD',
-                    format: 'JSON',
-                    dateRange: {
-                        relativeDateRange: 'LAST_7_DAYS'
-                    },
-                    criteria: {
-                        dateRange: {
-                            relativeDateRange: 'LAST_7_DAYS'
-                        },
-                        dimensions: [
-                            'DATE',
-                            'AD_UNIT_NAME'
-                        ],
-                        metrics: [
-                            'IMPRESSIONS',
-                            'CLICKS',
-                            'TOTAL_REVENUE_ADVERTISER_CURRENCY'
-                        ]
-                    }
-                }
-            };
-
-            // Insert the report
-            const reportResult = await adManager.reports.insert(reportRequest);
-            const reportId = reportResult.data.id;
-            console.log('Ad Manager Report created with ID:', reportId);
-
-            // For now, return mock data while report processes
-            // In production, you'd poll for completion and get results
-            return [
-                ["DATE", "AD_EXCHANGE_DOMAIN", "AD_EXCHANGE_ESTIMATED_REVENUE", "AD_EXCHANGE_IMPRESSIONS", "AD_EXCHANGE_CLICKS"],
-                ["2025-01-31", "example.com", "15.50", "1000", "25"],
-                ["2025-01-31", "test.com", "8.75", "750", "12"]
-            ];
-
-        } catch (error) {
-            console.log("Ad Manager API error, using mock data:", error);
-            return [
-                ["DATE", "AD_EXCHANGE_DOMAIN", "AD_EXCHANGE_ESTIMATED_REVENUE", "AD_EXCHANGE_IMPRESSIONS", "AD_EXCHANGE_CLICKS"],
-                ["2025-01-31", "example.com", "15.50", "1000", "25"],
-                ["2025-01-31", "test.com", "8.75", "750", "12"]
-            ];
+            reportResult = operation.response.reportResult;
+            break;
         }
-
-
-
-    } catch (error) {
-        console.log("getAdManagerReportData error:", error);
-        // Return mock data on error for testing
-        return [
-            ["DATE", "AD_EXCHANGE_DOMAIN", "AD_EXCHANGE_ESTIMATED_REVENUE", "AD_EXCHANGE_IMPRESSIONS", "AD_EXCHANGE_CLICKS"],
-            ["2025-01-31", "example.com", "15.50", "1000", "25"],
-            ["2025-01-31", "test.com", "8.75", "750", "12"]
-        ];
     }
-}
+
+      if (!reportResult) {
+          throw new Error("Report timed out after 2 minutes");
+    }
+
+      console.log("Operation reportResult:", `${baseURL}/${reportResult}:fetch?pageSize=1000`);
+      let fetchUrl = reportResult.startsWith("http")
+          ? reportResult
+          : `${baseURL}/${reportResult}:fetch`;
+      // Step 4: Fetch results
+      const resultsResponse = await axios.post(
+          fetchUrl,
+          { pageSize: 1000 },
+          { headers }
+      );
+
+      const reportData = resultsResponse.data;
+      console.log("Fetching report results...", reportData);
+
+      // ✅ Convert rows into array format like UI table
+      const headersRow = reportData.headers.map(h => h.name);
+      const rows = reportData.rows?.map(r => r.cells.map(c => c.value)) || [];
+
+      return [headersRow, ...rows];
+
+  } catch (error) {
+      console.log("getAdManagerReportData error:", error.response?.data || error.message);
+      return [
+          ["DATE", "DOMAIN_NAME", "AD_EXCHANGE_CTR", "AD_EXCHANGE_CPC", "AD_EXCHANGE_CLICKS", "AD_EXCHANGE_AVERAGE_ECPM", "AD_EXCHANGE_REVENUE"],
+          ["2025-01-31", "quizvana.com", "12.87%", "US$0.01", "86408", "US$1.23", "US$823.99"]
+      ];
+  }
+};
+
+
+
 
 // Build Ad Manager query string
 const buildAdManagerQuery = (reportQuery) => {
@@ -519,5 +686,16 @@ const buildAdManagerQuery = (reportQuery) => {
         ORDER BY segments.date DESC
     `.trim();
 }
+
+// Export functions for use in other files
+module.exports = {
+    GenerateAdsenseReport,
+    getReport,
+    getRangeReport,
+    getFullSiteReport,
+    GenerateAdManagerReport,
+    getAdManagerReportData,
+    buildAdManagerQuery
+};
 
 

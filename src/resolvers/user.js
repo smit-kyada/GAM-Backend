@@ -1,5 +1,4 @@
 import async from "async";
-import { google } from "googleapis";
 import { combineResolvers } from "graphql-resolvers";
 import moment from "moment";
 import mongoose from "mongoose";
@@ -68,7 +67,6 @@ export default {
                 if (me?.isAdmin) {
                     resolve(true)
                 } else {
-
                     await models?.Account.findOne({ userId: me?.id, isDeleted: false })
                         .then((record) => {
                             if (record) { resolve(true) }
@@ -345,32 +343,35 @@ export default {
                                     const otpToken = jwt.sign({ id: ress?.id }, process.env.SECRET, { expiresIn: "20m" });
                                     const otpLink = `${process.env.MAIN_WEB_URL}/verify-otp?token=${otpToken}`;
 
-                                    const result = await emailNotification(ress, "RegisterOTP", false);
+                                    console.log("🚀 ~ file: user.js:347 ~ .then ~ otpLink:", otpLink)
+                                    console.log("🚀 ~ file: user.js:348 ~ .then ~ otpToken:", otpToken)
 
-                                    if (result?.flag) {
-                                        const sendEmailVerification = await emailNotification(ress, "verifyEmail", false)
-                                        ress.code = sendEmailVerification?.data;
+                                    // const result = await emailNotification(ress, "RegisterOTP", false);
+
+                                    // if (result?.flag) {
+                                        // const sendEmailVerification = await emailNotification(ress, "verifyEmail", false)
+                                        // ress.code = sendEmailVerification?.data;
                                         await ress.save();
-                                        if (sendEmailVerification?.flag) {
-                                            resolve(otpLink)
-                                        }
-                                        else {
+                                        // if (sendEmailVerification?.flag) {
+                                        //     resolve(otpLink)
+                                        // }
+                                        // else {
                                             resolve({
                                                 status: true,
                                                 message: "Successfully signed up but email verification link not sent!",
                                                 user: ress,
                                             });
-                                        }
-                                    }
+                                        // }
+                                    // }
 
-                                    else {
-                                        resolve({
-                                            status: true,
-                                            message: "Successfully signed up but OTP  not sent ! ",
-                                            user: ress,
-                                        });
+                                    // else {
+                                    //     resolve({
+                                    //         status: true,
+                                    //         message: "Successfully signed up but OTP  not sent ! ",
+                                    //         user: ress,
+                                    //     });
 
-                                    }
+                                    // }
 
 
                                 }).catch(err => {

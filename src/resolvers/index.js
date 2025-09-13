@@ -15,6 +15,8 @@ import AdsenseResolvers from './adsense'
 import AdManagerResolvers from './adManager'
 import ContactResolvers from './contact'
 import QueriesResolvers from './queries'
+import DailyAdsManagerReportResolvers from './dailyReport'
+import AdUnitReportResolvers from './adUnitReport'
 
 export default [
     userResolvers,
@@ -34,4 +36,6 @@ export default [
     AdManagerResolvers,
     ContactResolvers,
     QueriesResolvers,
+    DailyAdsManagerReportResolvers,
+    AdUnitReportResolvers,
 ]

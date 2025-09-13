@@ -1,0 +1,27 @@
+{
+  "watch": ["src"],
+  "ignore": [
+    "node_modules", 
+    "dist", 
+    "build", 
+    "*.log",
+    "src/**/*.test.js",
+    "src/**/*.spec.js",
+    "src/**/*.min.js",
+    "src/**/*.bundle.js",
+    "src/**/node_modules/**",
+    "src/**/.git/**",
+    "src/**/coverage/**",
+    "src/**/tmp/**",
+    "src/**/temp/**"
+  ],
+  "ext": "js,graphql",
+  "exec": "babel-node src/index.js",
+  "legacyWatch": false,
+  "delay": "2000",
+  "verbose": true,
+  "restartable": "rs",
+  "env": {
+    "NODE_ENV": "development"
+  }
+}

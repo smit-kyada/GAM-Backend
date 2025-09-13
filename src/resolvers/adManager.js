@@ -139,6 +139,7 @@ export default {
                 try {
                     // This will call your existing GenerateAdManagerReport function
                     // You can implement the actual report generation logic here
+                    console.log("dateRange, dimensions, metrics", dateRange, dimensions, metrics);
                     resolve(true)
                 } catch (error) {
                     reject(error)
