@@ -1,10 +1,11 @@
 import async from "async";
 import { combineResolvers } from "graphql-resolvers";
 import moment from "moment";
-import { GenerateDeductionObj } from "../functions/GenerateObj";
-import { FilterQuery } from "../functions/generateFilterQuery";
-import { isAdmin, isAuthenticated } from "./authorization";
-const { ObjectId } = require('mongodb');
+import { GenerateDeductionObj } from "../functions/GenerateObj.js";
+import { FilterQuery } from "../functions/generateFilterQuery.js";
+import { isAdmin, isAuthenticated } from "./authorization.js";
+import { ObjectId } from 'mongodb';
+
 
 export default {
     Query: {

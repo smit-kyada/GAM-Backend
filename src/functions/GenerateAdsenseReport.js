@@ -1,15 +1,14 @@
-import { ConsoleMessage } from "puppeteer";
-import AdManager from "../models/adManager";
+import AdManager from "../models/adManager.js";
 import axios from "axios";
 
-const models = require("../models");
-const { google } = require("googleapis");
-const async = require("async");
-const { AdsenseConvert, AdManagerConvert } = require("./AdsenseConvert");
-const { GenerateAdsenseReportObj, GenerateAdManagerReportObj } = require("./GenerateObj");
-const moment = require("moment");
-const { AdsenseTotal } = require("./AdsenseTotal");
-require("dotenv/config");
+import models from "../models/index.js";
+import { google } from "googleapis";
+import async from "async";
+import { AdsenseConvert, AdManagerConvert } from "./AdsenseConvert.js";
+import { GenerateAdsenseReportObj, GenerateAdManagerReportObj } from "./GenerateObj.js";
+import moment from "moment";
+import { AdsenseTotal } from "./AdsenseTotal.js";
+import "dotenv/config";
 
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -687,15 +686,6 @@ const buildAdManagerQuery = (reportQuery) => {
     `.trim();
 }
 
-// Export functions for use in other files
-module.exports = {
-    GenerateAdsenseReport,
-    getReport,
-    getRangeReport,
-    getFullSiteReport,
-    GenerateAdManagerReport,
-    getAdManagerReportData,
-    buildAdManagerQuery
-};
+// Functions are already exported individually above
 
 

@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 import { combineResolvers } from "graphql-resolvers";
-import { isAuthenticated, isAdmin } from "./authorization";
-import { FilterQuery } from "../functions/generateFilterQuery";
-import { fileUpload } from "../functions/fileUpload";
+import { isAuthenticated, isAdmin } from "./authorization.js";
+import { FilterQuery } from "../functions/generateFilterQuery.js";
+import { fileUpload } from "../functions/fileUpload.js";
 import fs from "fs";
-const { ObjectId } = require('mongodb');
+import { ObjectId } from 'mongodb';
 
 export default {
     Query: {

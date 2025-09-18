@@ -1,12 +1,13 @@
 import mongoose from "mongoose";
 import { combineResolvers } from "graphql-resolvers";
-import { isAuthenticated, isAdmin } from "./authorization";
-import { FilterQuery } from "../functions/generateFilterQuery";
-import { GenerateSiteTableObj } from "../functions/GenerateObj";
+import { isAuthenticated, isAdmin } from "./authorization.js";
+import { FilterQuery } from "../functions/generateFilterQuery.js";
+import { GenerateSiteTableObj } from "../functions/GenerateObj.js";
 import async from "async";
 import moment from "moment";
-import { getRangeReport, getReport, getSiteTableReport } from "../functions/GenerateAdsenseReport";
-const { ObjectId } = require('mongodb');
+import { getRangeReport, getReport } from "../functions/GenerateAdsenseReport.js";
+import { ObjectId } from 'mongodb';
+
 
 export default {
     Query: {

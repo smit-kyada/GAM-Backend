@@ -8,21 +8,23 @@ import { google } from "googleapis";
 import { createServer } from "http";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import { connectDB } from "./DB";
-import models from "./models";
-import resolvers from "./resolvers";
-import Api from "./routes";
-import typeDefs from "./schema";
-import Socket from "./socket";
+import axios from "axios";
+import { connectDB } from "./DB/index.js";
+import models from "./models/index.js";
+import resolvers from "./resolvers/index.js";
+import Api from "./routes/index.js";
+import typeDefs from "./schema/index.js";
+import Socket from "./socket/index.js";
 import { ApolloServerPluginLandingPageDisabled } from "apollo-server-core";
 import moment from "moment";
-import { AdsenseConvert } from "./functions/AdsenseConvert";
+import { AdsenseConvert } from "./functions/AdsenseConvert.js";
+import { GenerateAdManagerReport } from "./functions/AdManagerReport.js";
 import async from "async"
 import fs from "fs"
-import { generateRandomString } from "./functions/generateRandomString";
-import { FourMonthBackup } from "./functions/siteTableBackup";
-import { AdsenseTotal } from "./functions/AdsenseTotal";
-// import AdManager from "./models/adManager";
+import { generateRandomString } from "./functions/generateRandomString.js";
+import { FourMonthBackup } from "./functions/siteTableBackup.js";
+import { AdsenseTotal } from "./functions/AdsenseTotal.js";
+// import AdManager from "./models/adManager.js";
 
 
 
@@ -54,7 +56,7 @@ const oauth2Client = new google.auth.OAuth2(
         : `http://localhost:3001/auth/callback`,
 );
 
-console.log(`${process.env.CALLBACK_URL}/auth/callback`);
+console.log("OAuth callback URL:", `${process.env.CALLBACK_URL}/auth/callback`);
 
 app.get("/authorize/:token", async (req, res) => {
 
@@ -101,8 +103,8 @@ app.get(`/auth/callback`, async (req, res) => {
 
         // Try to generate Ad Manager report but don't block login if it fails
         try {
-            // const reportResult = await GenerateAdManagerReport();
-            // console.log("Report generation result:", reportResult);
+            const reportResult = await GenerateAdManagerReport();
+            console.log("Report generation result:", reportResult);
         } catch (reportError) {
             console.log("Report generation failed but continuing login:", reportError);
             // Log the error but continue with login
@@ -327,15 +329,19 @@ async function startServer() {
     // app.use(graphqlUploadExpress());
     server.applyMiddleware({ app });
 
-    connectDB().then(() => {
-        const serverGr = httpServer.listen(process.env.PORT, () =>
-            // httpServer.listen(process.env.PORT, () =>
-            console.log(`Server is now running on http://localhost:${process.env.PORT}/graphql`)
-        );
+    try {
+        await connectDB();
+
+        const serverGr = httpServer.listen(process.env.PORT, () => {
+            console.log(`🚀 Server is now running on http://localhost:${process.env.PORT}/graphql`);
+            console.log(`📊 GraphQL Playground available at http://localhost:${process.env.PORT}/graphql`);
+        });
+
         // Socket.connectSocketServer(serverGr);
-    }).catch((error) => {
-        console.log(`🚀 ~ file: index.js:121 ~ connectDB ~ error:`, error)
-    })
+    } catch (error) {
+        console.error("❌ Database connection failed:", error);
+        process.exit(1);
+    }
 }
 
 startServer();

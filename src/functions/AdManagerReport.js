@@ -1,10 +1,10 @@
 // CommonJS module for Ad Manager report generation
-const { google } = require('googleapis');
-const { NetworkServiceClient } = require('@google-ads/admanager').v1;
-const async = require('async');
-const { AdManagerConvert } = require('./AdsenseConvert');
-const { GenerateAdManagerReportObj } = require('./GenerateObj');
-const { default: AdManager } = require('../models/adManager');
+import { google } from 'googleapis';
+import { NetworkServiceClient } from '@google-ads/admanager';
+import async from 'async';
+import { AdManagerConvert } from './AdsenseConvert.js';
+import { GenerateAdManagerReportObj } from './GenerateObj.js';
+import AdManager from '../models/adManager.js';
 
 // Create OAuth2 client
 const oauth2Client = new google.auth.OAuth2(
@@ -146,7 +146,6 @@ const getAdManagerReportData = async (reportQuery, oauth2Client) => {
 
         try {
             // Import the ReportService for running reports
-            const { ReportServiceClient } = require('@google-ads/admanager').v1;
             
             // Instantiate the report service client with explicit auth
             const reportServiceClient = new ReportServiceClient({
@@ -243,7 +242,7 @@ const buildAdManagerQuery = (reportQuery) => {
     `.trim();
 };
 
-module.exports = {
+export {
     GenerateAdManagerReport,
     getAdManagerReportData,
     buildAdManagerQuery

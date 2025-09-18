@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
 import { combineResolvers } from "graphql-resolvers";
-import { isAuthenticated, isAdmin } from "./authorization";
-import { FilterQuery } from "../functions/generateFilterQuery";
-const { ObjectId } = require('mongodb');
+import { isAuthenticated, isAdmin } from "./authorization.js";
+import { FilterQuery } from "../functions/generateFilterQuery.js";
+import { ObjectId } from 'mongodb';
+
 
 export default {
     Query: {

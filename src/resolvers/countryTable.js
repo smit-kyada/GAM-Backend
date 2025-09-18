@@ -1,11 +1,12 @@
 import mongoose from "mongoose";
 import { combineResolvers } from "graphql-resolvers";
-import { isAuthenticated, isAdmin } from "./authorization";
-import { FilterQuery } from "../functions/generateFilterQuery";
-import { GenerateCountryTableObj } from "../functions/GenerateObj";
+import { isAuthenticated, isAdmin } from "./authorization.js";
+import { FilterQuery } from "../functions/generateFilterQuery.js";
+import { GenerateCountryTableObj } from "../functions/GenerateObj.js";
 import async from "async";
 import moment from "moment";
-const { ObjectId } = require('mongodb');
+import { ObjectId } from 'mongodb';
+
 
 export default {
     Query: {

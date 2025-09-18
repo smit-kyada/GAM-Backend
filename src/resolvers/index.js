@@ -1,22 +1,24 @@
-import userResolvers from "./user";
-import siteTableResolvers from './siteTable'
-import siteResolvers from './site'
-import affRequestResolvers from './affRequest'
-import messageResolvers from './message'
-import gameUserResolvers from './gameUser'
-import messageLogResolvers from './messageLog'
-import bankDetailResolvers from './bankDetail'
-import notificationMessageResolvers from './notificationMessage'
-import ApplogResolvers from './applog'
-import DeductionResolvers from './deduction'
-import CountryTableResolvers from './countryTable'
-import AccountResolvers from './account'
-import AdsenseResolvers from './adsense'
-import AdManagerResolvers from './adManager'
-import ContactResolvers from './contact'
-import QueriesResolvers from './queries'
-import DailyAdsManagerReportResolvers from './dailyReport'
-import AdUnitReportResolvers from './adUnitReport'
+import userResolvers from "./user.js";
+import siteTableResolvers from './siteTable.js'
+import siteResolvers from './site.js'
+import affRequestResolvers from './affRequest.js'
+import messageResolvers from './message.js'
+import gameUserResolvers from './gameUser.js'
+import messageLogResolvers from './messageLog.js'
+import bankDetailResolvers from './bankDetail.js'
+import notificationMessageResolvers from './notificationMessage.js'
+import ApplogResolvers from './applog.js'
+import DeductionResolvers from './deduction.js'
+import CountryTableResolvers from './countryTable.js'
+import AccountResolvers from './account.js'
+import AdsenseResolvers from './adsense.js'
+import AdManagerResolvers from './adManager.js'
+import ContactResolvers from './contact.js'
+import QueriesResolvers from './queries.js'
+import DailyAdsManagerReportResolvers from './dailyReport.js'
+import AdUnitReportResolvers from './adUnitReport.js'
+import HoursWiseResolvers from './hoursWise.js'
+import TotalRevenueResolvers from './totalRevenue.js'
 
 export default [
     userResolvers,
@@ -38,4 +40,6 @@ export default [
     QueriesResolvers,
     DailyAdsManagerReportResolvers,
     AdUnitReportResolvers,
+    HoursWiseResolvers,
+    TotalRevenueResolvers,
 ]

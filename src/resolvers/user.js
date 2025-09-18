@@ -2,13 +2,13 @@ import async from "async";
 import { combineResolvers } from "graphql-resolvers";
 import moment from "moment";
 import mongoose from "mongoose";
-import { emailNotification } from "../functions/emailService";
-import { getFullReport, getFullSiteReport, getRangeReport, getReport, getSiteRangeReport, getSiteReport } from "../functions/GenerateAdsenseReport";
-import { FilterQuery } from "../functions/generateFilterQuery";
-import { GenerateUserObj } from "../functions/GenerateObj";
-import { generateToken } from "../functions/generateToken";
-import { isAdmin, isAuthenticated } from "./authorization";
-import { generateRandomString } from "../functions/generateRandomString";
+import { emailNotification } from "../functions/emailService.js";
+import { getFullReport, getFullSiteReport, getRangeReport, getReport, getSiteRangeReport, getSiteReport } from "../functions/GenerateAdsenseReport.js";
+import { FilterQuery } from "../functions/generateFilterQuery.js";
+import { GenerateUserObj } from "../functions/GenerateObj.js";
+import { generateToken } from "../functions/generateToken.js";
+import { isAdmin, isAuthenticated } from "./authorization.js";
+import { generateRandomString } from "../functions/generateRandomString.js";
 import XLSX from "xlsx";
 import path from "path"
 import fs from "fs"
@@ -16,7 +16,7 @@ import crypto from "crypto"
 import jwt from "jsonwebtoken";
 import twilio from "twilio";
 import ejs from 'ejs';
-import { generatePdf } from "../functions/generateAgreement";
+import { generatePdf } from "../functions/generateAgreement.js";
 
 
 // Twilio configuration

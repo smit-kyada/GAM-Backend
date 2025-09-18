@@ -1,25 +1,26 @@
-import User from "./user";
-import SiteTable from "./siteTable";
-import Site from "./site";
-import AffRequest from './affRequest'
-import Message from "./message";
-import GameUser from "./gameUsers";
-import MessageLog from "./messageLog";
-import BankDetail from "./bankDetail";
-import NotificationMessage from "./notificationMeassage";
-import Applog from "./applog";
-import Deduction from "./deduction";
-import CountryTable from "./countryTable";
-import Account from "./account";
-import Adsense from "./adsense";
-import AdManager from "./adManager";
-import AdManagerReport from "./adManagerReport";
-import AdManagerData from "./adManagerData";
-import BackupSitetable from "./backupSitetable";
-import Contact from "./contact";
-import Queries from "./queries";
-import DailyAdsManagerReport from "./dailyReport";
-import AdUnitReport from "./adUnitReport";
+import User from "./user.js";
+import SiteTable from "./siteTable.js";
+import Site from "./site.js";
+import AffRequest from './affRequest.js'
+import Message from "./message.js";
+import GameUser from "./gameUsers.js";
+import MessageLog from "./messageLog.js";
+import BankDetail from "./bankDetail.js";
+import NotificationMessage from "./notificationMeassage.js";
+import Applog from "./applog.js";
+import Deduction from "./deduction.js";
+import CountryTable from "./countryTable.js";
+import Account from "./account.js";
+import Adsense from "./adsense.js";
+import AdManager from "./adManager.js";
+import AdManagerReport from "./adManagerReport.js";
+import AdManagerData from "./adManagerData.js";
+import BackupSitetable from "./backupSitetable.js";
+import Contact from "./contact.js";
+import Queries from "./queries.js";
+import DailyAdsManagerReport from "./dailyReport.js";
+import AdUnitReport from "./adUnitReport.js";
+import HourWise from "./hoursWise.js";
 
 export default {
     User,
@@ -35,6 +36,7 @@ export default {
     Deduction,
     DailyAdsManagerReport,
     AdUnitReport,
+    HourWise,
     CountryTable,
     Account,
     Adsense,

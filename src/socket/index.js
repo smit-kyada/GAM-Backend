@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import models from "../models";
+import models from "../models/index.js";
 import jwt from "jsonwebtoken";
 import webpush from "web-push";
 

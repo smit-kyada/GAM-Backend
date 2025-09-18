@@ -1,5 +1,5 @@
-import models from "../models/index";
-import { sendResponse } from "../functions/sendResponse";
+import models from "../models/index.js";
+import { sendResponse } from "../functions/sendResponse.js";
 
 export const createAffiliateRequest = async (req, res) => {
     try {

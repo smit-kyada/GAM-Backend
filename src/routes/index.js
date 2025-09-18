@@ -1,7 +1,7 @@
 import express from "express";
 const router = express.Router();
-import affRequestRoutes from "./affRequest";
-import userDataRoutes from "./userData";
+import affRequestRoutes from "./affRequest.js";
+import userDataRoutes from "./userData.js";
 
 router.use('/affiliateRequest', affRequestRoutes);
 

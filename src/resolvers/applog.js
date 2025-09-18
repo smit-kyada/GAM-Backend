@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { combineResolvers } from "graphql-resolvers";
-import { isAuthenticated, isAdmin } from "./authorization";
-import { FilterQuery } from "../functions/generateFilterQuery";
+import { isAuthenticated, isAdmin } from "./authorization.js";
+import { FilterQuery } from "../functions/generateFilterQuery.js";
 
 export default {
     Query: {

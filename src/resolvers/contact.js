@@ -1,6 +1,6 @@
 import { combineResolvers } from "graphql-resolvers";
-import { FilterQuery } from "../functions/generateFilterQuery";
-import { isAdmin } from "./authorization";
+import { FilterQuery } from "../functions/generateFilterQuery.js";
+import { isAdmin } from "./authorization.js";
 
 export default {
     Query: {

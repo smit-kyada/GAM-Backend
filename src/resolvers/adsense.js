@@ -1,5 +1,5 @@
 import { combineResolvers } from "graphql-resolvers";
-import { isAdmin, isAuthenticated } from "./authorization";
+import { isAdmin, isAuthenticated } from "./authorization.js";
 
 export default {
     Query: {

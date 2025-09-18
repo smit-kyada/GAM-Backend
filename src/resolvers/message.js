@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 import { combineResolvers } from "graphql-resolvers";
-import { isAuthenticated, isAdmin } from "./authorization";
-import { fileUpload } from "../functions/fileUpload";
+import { isAuthenticated, isAdmin } from "./authorization.js";
+import { fileUpload } from "../functions/fileUpload.js";
 import fs from "fs";
-import { FilterQuery } from "../functions/generateFilterQuery";
+import { FilterQuery } from "../functions/generateFilterQuery.js";
 
 export default {
     Query: {

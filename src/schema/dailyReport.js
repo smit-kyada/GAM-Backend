@@ -3,12 +3,12 @@ import { gql } from "apollo-server-express";
 export default gql`
 
 type CountryStats {
-  impressions: Int
-  clicks: Int
+  impressions: Float
+  clicks: Float
   ctr: Float
   ecpm: Float
   revenue: Float
-  totalRequests: Int
+  totalRequests: Float
   costPerClick: Float
   matchRate: Float
 }
@@ -22,24 +22,24 @@ type DailyAdsManagerReport {
   id: ID!
   date: String
   site: String!
-  impressions: Int
-  clicks: Int
+  impressions: Float
+  clicks: Float
   ctr: Float
   ecpm: Float
   revenue: Float
-  totalRequests: Int
+  totalRequests: Float
   costPerClick: Float
   matchRate: Float
   country: String
   countries: [CountryEntry!]
 }
 type ReportTotals {
-  impressions: Int
-  clicks: Int
+  impressions: Float
+  clicks: Float
   ctr: Float
   ecpm: Float
   revenue: Float
-  totalRequests: Int
+  totalRequests: Float
   costPerClick: Float
   matchRate: Float
 }

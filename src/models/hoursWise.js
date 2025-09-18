@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import mongoosePaginate from "mongoose-paginate";
 
-const CountryStatsSchema = new mongoose.Schema(
+const HourStatsSchema = new mongoose.Schema(
   {
     impressions: { type: Number, default: 0 },
     clicks: { type: Number, default: 0 },
@@ -15,26 +15,7 @@ const CountryStatsSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const AdUnitSchema = new mongoose.Schema(
-  {
-    impressions: { type: Number, default: 0 },
-    clicks: { type: Number, default: 0 },
-    ctr: { type: Number, default: 0 },
-    ecpm: { type: Number, default: 0 },
-    revenue: { type: Number, default: 0 },
-    totalRequests: { type: Number, default: 0 },
-    costPerClick: { type: Number, default: 0 },
-    matchRate: { type: Number, default: 0 },
-    countries: {
-      type: Map,
-      of: CountryStatsSchema,
-      default: {}
-    }
-  },
-  { _id: false }
-);
-
-const AdUnitReportSchema = new mongoose.Schema(
+const HoursWiseSchema = new mongoose.Schema(
   {
     date: { type: Date, required: true, index: true },
     site: { type: String, required: true, index: true },
@@ -47,21 +28,20 @@ const AdUnitReportSchema = new mongoose.Schema(
     totalRequests: { type: Number, default: 0 },
     costPerClick: { type: Number, default: 0 },
     matchRate: { type: Number, default: 0 },
-    country: { type: String, default: null },
-    adUnits: {
-      type: Map,
-      of: AdUnitSchema,
-      default: {}
-    }
+    hours: {
+      type: [HourStatsSchema],
+      default: []
+    },
   },
   {
     timestamps: true,
-    collection: "adunitreport"
+    collection: "hourwise" 
   }
 );
 
-AdUnitReportSchema.plugin(mongoosePaginate);
+HoursWiseSchema.index({ site: 1, date: -1 });
 
-const AdUnitReport = mongoose.model("AdUnitReport", AdUnitReportSchema);
+HoursWiseSchema.plugin(mongoosePaginate);
 
-export default AdUnitReport;
+const HourWise = mongoose.model("HourWise", HoursWiseSchema);
+export default HourWise;
