@@ -502,7 +502,6 @@ export default {
                                 if (!isValid) { reject(`Site or Password is not Valid`) }
                                 else {
                                     generateToken(site, secret, "site").then(async (token) => {
-
                                         resolve({ user: site, token })
                                     }).catch((error) => reject(error))
                                 }
@@ -511,7 +510,7 @@ export default {
 
                 }
                 else {
-                    await models?.User.findOne({ email }).then(async (user) => {
+                    await models?.User.findOne({ email, isDeleted: false }).then(async (user) => {
                         let isValid = false;
                         user && (isValid = await user.validatePassword(password));
                         if (user) {
@@ -531,13 +530,11 @@ export default {
                                         generateToken(user, secret, "user").then(async (token) => {
                                             resolve({ user, token })
                                         }).catch((error) => reject(error))
-
                                     }
                                 } else {
                                     reject("Your Account is Not Active")
                                 }
                             }
-
                         } else {
                             reject("Account Not Found")
                         }
@@ -733,7 +730,7 @@ export default {
             return new Promise(async (resolve, reject) => {
                 const { userName, email } = input;
                 input.isEmailVerified = true
-                await models?.User.findOne({ email }).then(async (result) => {
+                await models?.User.findOne({ email, isDeleted: false }).then(async (result) => {
                     if (result) {
                         reject("User or email all ready taken")
                     } else {

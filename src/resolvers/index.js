@@ -19,6 +19,7 @@ import DailyAdsManagerReportResolvers from './dailyReport.js'
 import AdUnitReportResolvers from './adUnitReport.js'
 import HoursWiseResolvers from './hoursWise.js'
 import TotalRevenueResolvers from './totalRevenue.js'
+import SiteRequestResolvers from './siteRequest.js'
 
 export default [
     userResolvers,
@@ -42,4 +43,5 @@ export default [
     AdUnitReportResolvers,
     HoursWiseResolvers,
     TotalRevenueResolvers,
+    SiteRequestResolvers,
 ]

@@ -21,6 +21,7 @@ import Queries from "./queries.js";
 import DailyAdsManagerReport from "./dailyReport.js";
 import AdUnitReport from "./adUnitReport.js";
 import HourWise from "./hoursWise.js";
+import SiteRequest from "./siteRequest.js";
 
 export default {
     User,
@@ -46,4 +47,5 @@ export default {
     BackupSitetable,
     Contact,
     Queries,
+    SiteRequest,
 }

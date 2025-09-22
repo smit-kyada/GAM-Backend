@@ -31,8 +31,14 @@ export default {
               ]
             }
           };
+            // Handle site validation more gracefully
           if (!args.site || (Array.isArray(args.site) && args.site.length === 0)) {
-            throw new Error("The `site` argument is required and cannot be empty.");
+            // If user is admin, allow empty site to get all reports
+            if (me?.isAdmin) {
+              // Admin can see all reports without site filter
+            } else {
+              throw new Error("The `site` argument is required and cannot be empty.");
+            }
           }
 
           // Add site filter based on whether it's single or multiple sites

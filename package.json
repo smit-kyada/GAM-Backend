@@ -54,6 +54,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/graphql-resolvers": "^0.3.2",
     "nodemon": "^2.0.22",
     "source-map": "^0.7.4"

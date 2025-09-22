@@ -41,6 +41,7 @@ extend type Query {
     getAllSites(page: Number, limit: Number, isSearch: Boolean, filter: String, search: String):SiteRes
     getAlotSiteBoolean(id: ID):Boolean
     getNotAllotedSite(id:ID):[Site]
+    getAvailableSitesForRequest: [Site]
 }
 
 extend type Mutation {

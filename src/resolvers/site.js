@@ -150,6 +150,33 @@ export default {
                 }).catch((error) => reject(error))
             })
         }),
+
+        getAvailableSitesForRequest: combineResolvers(isAuthenticated, (parent, args, { models, me }, info) => {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    // Get sites that are not assigned to any user and are not already requested by current user
+                    const userPendingRequests = await models?.SiteRequest.find({
+                        userId: ObjectId(me?.id),
+                        status: 'pending',
+                        isDeleted: false
+                    }).select('siteId');
+
+                    const pendingSiteIds = userPendingRequests.map(req => req.siteId);
+
+                    const availableSites = await models?.Site.find({
+                        $and: [
+                            { userId: { $exists: false } },
+                            { isDeleted: false },
+                            { _id: { $nin: pendingSiteIds } }
+                        ]
+                    }).sort({ _id: -1 });
+
+                    resolve(availableSites);
+                } catch (error) {
+                    reject(error);
+                }
+            })
+        }),
     },
 
     Mutation: {
@@ -162,7 +189,6 @@ export default {
                     } else {
                         reject("Link all ready exist")
                     }
-
                 }).catch((error) => reject(error))
 
             })

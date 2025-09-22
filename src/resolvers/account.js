@@ -18,7 +18,6 @@ export default {
             })
         }),
 
-
         getAllAccounts: combineResolvers(isAuthenticated, (parent, args, { models, me }) => {
             return new Promise(async (resolve, reject) => {
                 let Obj = {}

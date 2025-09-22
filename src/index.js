@@ -31,11 +31,65 @@ import { AdsenseTotal } from "./functions/AdsenseTotal.js";
 let ObjectId = mongoose.Types.ObjectId;
 
 const app = express();
-app.use(express.json({ limit: "100mb" }));
+
+// Add error handling for JSON parsing
+app.use(express.json({
+    limit: "100mb",
+    verify: (req, res, buf, encoding) => {
+        try {
+            JSON.parse(buf);
+        } catch (e) {
+            console.error('JSON Parse Error:', e.message);
+            res.status(400).json({
+                success: false,
+                message: 'Invalid JSON format',
+                error: e.message
+            });
+        }
+    }
+}));
+
 app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 app.use(cors());
+
+// Add middleware to handle multipart/form-data requests that shouldn't be parsed as JSON
+app.use((req, res, next) => {
+    if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
+        // Skip JSON parsing for multipart requests
+        return next();
+    }
+    next();
+});
+
 app.use("/", express.static(process.env.ASSETS_STORAGE));
 app.use('/api/v1', Api);
+
+// Global error handler
+app.use((error, req, res, next) => {
+    console.error('Global Error Handler:', error);
+
+    if (error.type === 'entity.parse.failed') {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid JSON format in request body',
+            error: error.message
+        });
+    }
+
+    if (error.type === 'entity.too.large') {
+        return res.status(413).json({
+            success: false,
+            message: 'Request entity too large',
+            error: error.message
+        });
+    }
+
+    res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+    });
+});
 
 
 
@@ -249,11 +303,14 @@ const getMe = async (req) => {
             const me = await jwt.verify(token, process.env.SECRET);
             switch (me?.type) {
                 case "site":
-                    const site = await models?.Site.findById(me.id)
-                    site.role = "client"
-                    return site
+                    const site = await models?.Site.findOne({ _id: me.id, isDeleted: false })
+                    if (site) {
+                        site.role = "client"
+                        return site
+                    }
+                    return null
                 case "user":
-                    return await models?.User.findOne({ _id: me.id, email: me?.email, userName: me?.userName })
+                    return await models?.User.findOne({ _id: me.id, email: me?.email, userName: me?.userName, isDeleted: false })
             }
 
         } catch (e) {

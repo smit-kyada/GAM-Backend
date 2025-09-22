@@ -21,6 +21,7 @@ import DailyAdsManagerReportSchema from './dailyReport.js'
 import AdUnitReportSchema from './adUnitReport.js'
 import HoursWiseSchema from './hoursWise.js'
 import TotalRevenueSchema from './totalRevenue.js'
+import SiteRequestSchema from './siteRequest.js'
 
 const linkSchema = gql`
   scalar Date
@@ -71,5 +72,6 @@ export default [
   DailyAdsManagerReportSchema,
   AdUnitReportSchema,
   HoursWiseSchema,
-  TotalRevenueSchema
+  TotalRevenueSchema,
+  SiteRequestSchema
 ]
