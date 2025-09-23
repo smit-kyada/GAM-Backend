@@ -308,5 +308,290 @@ export default {
         });
       }
     )
+  },
+
+  Mutation: {
+    downloadDailyReportCSV: combineResolvers(
+      isAuthenticated,
+      async (parent, args, { models, me }, info) => {
+        return new Promise(async (resolve, reject) => {
+          try {
+            // 🔎 Date filter
+            let startDate = args?.startDate ? new Date(args.startDate) : null;
+            startDate.setUTCHours(0, 0, 0, 0);
+            let endDate = args?.endDate ? new Date(args.endDate) : null;
+            endDate.setUTCHours(23, 59, 59, 999);
+
+            // Build the base match stage for multiple sites
+            const baseMatch = {
+              isDeleted: false,
+              $expr: {
+                $and: [
+                  { $gte: [{ $toDate: "$date" }, startDate] },
+                  { $lte: [{ $toDate: "$date" }, endDate] }
+                ]
+              }
+            };
+
+            // Handle site validation more gracefully
+            if (!args.site || (Array.isArray(args.site) && args.site.length === 0)) {
+              // If user is admin, allow empty site to get all reports
+              if (me?.isAdmin) {
+                // Admin can see all reports without site filter
+              } else {
+                throw new Error("The `site` argument is required and cannot be empty.");
+              }
+            }
+
+            // Add site filter based on whether it's single or multiple sites
+            if (Array.isArray(args.site) && args.site.length > 0) {
+              baseMatch.site = { $in: args.site };
+            } else if (args.site) {
+              baseMatch.site = args.site;
+            }
+
+            // 🛠️ Aggregation pipeline (same as getReports but without pagination)
+            let aggregation = [
+              { $match: baseMatch },
+              { $sort: { date: -1 } }
+            ];
+
+            // ---------------------------
+            // Case 1: No country filter or country = null
+            // ---------------------------
+            if (!args.country || args.country.length === 0 || args.country === null) {
+              // Group by site and date (no country breakdown)
+              const groupId = args.byDated
+                ? { site: "$site", date: "$date" }
+                : { site: "$site" };
+
+              aggregation.push(
+                {
+                  $group: {
+                    _id: groupId,
+                    site: { $first: "$site" },
+                    date: args.byDated ? { $first: "$date" } : { $min: "$date" },
+                    impressions: { $sum: "$impressions" },
+                    clicks: { $sum: "$clicks" },
+                    revenue: { $sum: "$revenue" },
+                    totalRequests: { $sum: "$totalRequests" },
+                    costPerClick: { $avg: "$costPerClick" },
+                    matchRateWeightedSum: { $sum: { $multiply: ["$matchRate", "$totalRequests"] } },
+                    matchRateTotalWeight: { $sum: "$totalRequests" }
+                  }
+                },
+                {
+                  $project: {
+                    site: 1,
+                    date: {
+                      $dateToString: {
+                        format: "%m-%d-%Y",
+                        date: { $ifNull: ["$date", new Date()] }
+                      }
+                    },
+                    country: { $literal: "ALL" },
+                    impressions: 1,
+                    clicks: 1,
+                    ctr: {
+                      $cond: {
+                        if: { $gt: ["$impressions", 0] },
+                        then: { $multiply: [{ $divide: ["$clicks", "$impressions"] }, 100] },
+                        else: 0
+                      }
+                    },
+                    ecpm: {
+                      $cond: {
+                        if: { $gt: ["$impressions", 0] },
+                        then: { $multiply: [{ $divide: ["$revenue", "$impressions"] }, 1000] },
+                        else: 0
+                      }
+                    },
+                    revenue: 1,
+                    totalRequests: 1,
+                    costPerClick: 1,
+                    matchRate: {
+                      $cond: {
+                        if: { $gt: ["$matchRateTotalWeight", 0] },
+                        then: { $divide: ["$matchRateWeightedSum", "$matchRateTotalWeight"] },
+                        else: 0
+                      }
+                    }
+                  }
+                }
+              );
+            }
+            // ---------------------------
+            // Case 2 + 3: Country filter
+            // ---------------------------
+            else {
+              // Convert countries object to array and unwind
+              aggregation.push(
+                {
+                  $addFields: {
+                    countriesArray: { $objectToArray: "$countries" }
+                  }
+                },
+                { $unwind: "$countriesArray" }
+              );
+
+              // Case 3: Specific countries (not ALL)
+              if (!(args.country.length === 1 && args.country[0] === "ALL")) {
+                aggregation.push({
+                  $match: { "countriesArray.k": { $in: args.country } }
+                });
+              }
+
+              // Group by site, date, and country
+              const countryGroupId = args.byDated
+                ? { site: "$site", date: "$date", country: "$countriesArray.k" }
+                : { site: "$site", country: "$countriesArray.k" };
+
+              aggregation.push(
+                {
+                  $group: {
+                    _id: countryGroupId,
+                    site: { $first: "$site" },
+                    date: args.byDated ? { $first: "$date" } : { $min: "$date" },
+                    country: { $first: "$countriesArray.k" },
+                    impressions: { $sum: "$countriesArray.v.impressions" },
+                    clicks: { $sum: "$countriesArray.v.clicks" },
+                    revenue: { $sum: "$countriesArray.v.revenue" },
+                    totalRequests: { $sum: "$countriesArray.v.totalRequests" },
+                    costPerClick: { $avg: "$countriesArray.v.costPerClick" },
+                    matchRateWeightedSum: { $sum: { $multiply: ["$countriesArray.v.matchRate", "$countriesArray.v.totalRequests"] } },
+                    matchRateTotalWeight: { $sum: "$countriesArray.v.totalRequests" }
+                  }
+                },
+                {
+                  $project: {
+                    site: 1,
+                    date: {
+                      $dateToString: {
+                        format: "%m-%d-%Y",
+                        date: { $ifNull: ["$date", new Date()] }
+                      }
+                    },
+                    country: "$country",
+                    impressions: 1,
+                    clicks: 1,
+                    ctr: {
+                      $cond: {
+                        if: { $gt: ["$impressions", 0] },
+                        then: { $multiply: [{ $divide: ["$clicks", "$impressions"] }, 100] },
+                        else: 0
+                      }
+                    },
+                    ecpm: {
+                      $cond: {
+                        if: { $gt: ["$impressions", 0] },
+                        then: { $multiply: [{ $divide: ["$revenue", "$impressions"] }, 1000] },
+                        else: 0
+                      }
+                    },
+                    revenue: 1,
+                    totalRequests: 1,
+                    costPerClick: 1,
+                    matchRate: {
+                      $cond: {
+                        if: { $gt: ["$matchRateTotalWeight", 0] },
+                        then: { $divide: ["$matchRateWeightedSum", "$matchRateTotalWeight"] },
+                        else: 0
+                      }
+                    }
+                  }
+                }
+              );
+            }
+
+            // Final sorting
+            aggregation.push(
+              { $sort: { site: 1, date: -1, country: 1 } }
+            );
+
+            const result = await models?.DailyAdsManagerReport.aggregate(aggregation);
+
+            // Transform data for CSV
+            const csvData = result.map(item => ({
+              site: item.site,
+              date: item.date,
+              country: item.country || "ALL",
+              impressions: item.impressions || 0,
+              clicks: item.clicks || 0,
+              ctr: parseFloat(item.ctr?.toFixed(2)) || 0,
+              ecpm: parseFloat(item.ecpm?.toFixed(2)) || 0,
+              revenue: item.revenue || 0,
+              totalRequests: item.totalRequests || 0,
+              costPerClick: parseFloat(item.costPerClick?.toFixed(2)) || 0,
+              matchRate: parseFloat(item.matchRate?.toFixed(2)) || 0
+            }));
+
+            // Create CSV string
+            const headers = ['Site', 'Date', 'Country', 'Impressions', 'Clicks', 'CTR (%)', 'ECPM', 'Revenue', 'Total Requests', 'Cost Per Click', 'Match Rate'];
+            const csvString = [
+              headers.join(','),
+              ...csvData.map(row => [
+                `"${row.site}"`,
+                `"${row.date}"`,
+                `"${row.country}"`,
+                row.impressions,
+                row.clicks,
+                row.ctr,
+                row.ecpm,
+                row.revenue,
+                row.totalRequests,
+                row.costPerClick,
+                row.matchRate
+              ].join(','))
+            ].join('\n');
+
+            // Calculate totals with weighted matchRate
+            const totals = csvData.reduce((acc, row) => {
+              acc.impressions += row.impressions;
+              acc.clicks += row.clicks;
+              acc.revenue += row.revenue;
+              acc.totalRequests += row.totalRequests;
+              acc.costPerClick += row.costPerClick;
+              // Weighted matchRate calculation
+              acc.matchRateWeightedSum += row.matchRate * row.totalRequests;
+              acc.matchRateTotalWeight += row.totalRequests;
+              return acc;
+            }, {
+              impressions: 0,
+              clicks: 0,
+              revenue: 0,
+              totalRequests: 0,
+              costPerClick: 0,
+              matchRateWeightedSum: 0,
+              matchRateTotalWeight: 0
+            });
+
+            // Calculate derived metrics
+            totals.ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+            totals.ecpm = totals.impressions > 0 ? (totals.revenue / totals.impressions) * 1000 : 0;
+            totals.costPerClick = totals.clicks > 0 ? totals.costPerClick / csvData.length : 0;
+            totals.matchRate = totals.matchRateTotalWeight > 0 ? (totals.matchRateWeightedSum / totals.matchRateTotalWeight) : 0;
+
+            resolve({
+              csvData: csvString,
+              totalRecords: csvData.length,
+              totals: {
+                impressions: totals.impressions,
+                clicks: totals.clicks,
+                ctr: parseFloat(totals.ctr.toFixed(2)),
+                ecpm: parseFloat(totals.ecpm.toFixed(2)),
+                revenue: totals.revenue,
+                totalRequests: totals.totalRequests,
+                costPerClick: parseFloat(totals.costPerClick.toFixed(2)),
+                matchRate: parseFloat(totals.matchRate.toFixed(2))
+              }
+            });
+
+          } catch (error) {
+            console.error("Error in downloadDailyReportCSV:", error);
+            reject(error);
+          }
+        });
+      }
+    )
   }
 };

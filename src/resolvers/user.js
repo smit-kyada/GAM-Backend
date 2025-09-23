@@ -14,13 +14,10 @@ import path from "path"
 import fs from "fs"
 import crypto from "crypto"
 import jwt from "jsonwebtoken";
-import twilio from "twilio";
 import ejs from 'ejs';
 import { generatePdf } from "../functions/generateAgreement.js";
 
 
-// Twilio configuration
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 const isValidPhoneNumber = (phoneNumber) => {
     const phoneRegex = /^(?:\+91|91)?\d{10}$/;
@@ -379,49 +376,7 @@ export default {
                                     reject(err)
                                 })
 
-                            // client.messages.create({
-                            //     body: `Hello! 👋\n\nThank you for choosing Funcliq! Your One-Time Password (OTP) for verification is: **${registerOtp}**.\n\nPlease enter this code on our website to complete your registration process. Remember, this code is valid for a limited time only.\n\nIf you did not request this OTP, please ignore this message.\n\nHappy exploring! 🌟`,
-                            //     from: process.env.TWILIO_PHONE_NUMBER,
-                            //     to: "+91" + contact,
-                            // })
-                            //     .then(async (res) => {
-
-                            //         await models?.User.create({ ...input, registerOtp, registerOtpExpiry, registerVerified: false })
-                            //             .then(async (ress) => {
-
-                            //                 const otpToken = jwt.sign({ id: ress?.id }, process.env.SECRET, { expiresIn: "20m" });
-                            //                 const otpLink = `${process.env.MAIN_WEB_URL}/verify-otp?token=${otpToken}`;
-
-                            //                 resolve(otpLink)
-
-                            //                 // const result = await emailNotification(ress, "verifyEmail", false);
-                            //                 // if (result?.flag) {
-                            //                 //     ress.code = result?.data;
-                            //                 //     await ress.save();
-                            //                 //     resolve({
-                            //                 //         status: true,
-                            //                 //         message: "Successfully signed up and email verification link sent.",
-                            //                 //         user: ress,
-                            //                 //     });
-                            //                 // } else
-                            //                 //     resolve({
-                            //                 //         status: true,
-                            //                 //         message: "Successfully signed up but email verification link not sent!",
-                            //                 //         user: ress,
-                            //                 //     });
-
-                            //                 // Generate OTP
-
-
-                            //             }).catch(err => {
-                            //                 console.log("🚀 ~ file: user.js:407 ~ .then ~ err:", err)
-                            //                 reject(err)
-                            //             })
-                            //     })
-                            //     .catch(err => {
-                            //         console.log("🚀 ~ file: user.js:418 ~ .then ~ err:", err)
-                            //         reject(err)
-                            //     });
+                            // Twilio SMS integration removed
 
 
 
@@ -557,32 +512,7 @@ export default {
                             const phoneOtp = crypto.randomInt(100000, 999999).toString();
                             const phoneOtpExpiry = Date.now() + 20 * 60 * 1000;
 
-                            // client.messages.create({
-                            //     body: `Funcliq!\n\n  Your One-Time Password (OTP) for verification is: \n\n ${phoneOtp} \n`,
-                            //     from: process.env.TWILIO_PHONE_NUMBER,
-                            //     to: "+91" + user?.contact?.toString(),
-                            // })
-                            //     .then(async (res) => {
-
-                            //         await models?.User.findOneAndUpdate({ _id: user?.id }, { phoneOtp, phoneOtpExpiry }, { new: true })
-                            //             .then(async (ress) => {
-
-                            //                 const otpToken = jwt.sign({ id: ress?.id }, process.env.SECRET, { expiresIn: "20m" });
-                            //                 const otpLink = `${process.env.MAIN_WEB_URL}/login-otp?token=${otpToken}`;
-
-                            //                 resolve(otpLink)
-                            //             })
-                            //             .catch((err) => {
-                            //                 console.log("🚀 ~ file: user.js:576 ~ .then ~ err:", err)
-                            //                 reject(err)
-                            //             })
-
-                            //     })
-                            //     .catch((error) => {
-                            //         console.log("🚀 ~ file: user.js:584 ~ .then ~ error:", error)
-                            //         reject(error)
-
-                            //     })
+                            // Twilio SMS integration removed
 
 
                             await models?.User.findOneAndUpdate({ _id: user?.id }, { phoneOtp, phoneOtpExpiry }, { new: true })
@@ -770,18 +700,7 @@ export default {
 
                             }
 
-                            client.messages.create({
-                                body: `Funcliq!\n Due to invalid Activity your Account is Terminated.\n Please contact us at ${process.env.E_MAIL} for more details`,
-                                from: process.env.TWILIO_PHONE_NUMBER,
-                                to: "+91" + result?.contact?.toString(),
-                            })
-                                .then((res) => {
-
-                                })
-                                .catch((err) => {
-                                    console.log("🚀 ~ file: user.js:722 ~ .then ~ err:", err)
-
-                                })
+                            // SMS notification removed - Twilio integration disabled
                         }
 
                         return resolve(result)
@@ -802,17 +721,7 @@ export default {
 
 
 
-                            client.messages.create({
-                                body: `Funcliq!\n Due to invalid Activity your Account is Terminated.\n Please contact us at ${process.env.E_MAIL} for more details`,
-                                from: process.env.TWILIO_PHONE_NUMBER,
-                                to: "+91" + result?.contact?.toString(),
-                            })
-                                .then((res) => {
-                                })
-                                .catch((err) => {
-                                    console.log("🚀 ~ file: user.js:722 ~ .then ~ err:", err)
-
-                                })
+                            // SMS notification removed - Twilio integration disabled
                         }
 
 

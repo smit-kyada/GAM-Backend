@@ -66,6 +66,27 @@ type PaginatedAdUnitReports {
   totals: AdUnitReportTotals
 }
 
+type AdUnitReportCSVData {
+  csvData: String!
+  totalRecords: Int!
+  totals: AdUnitReportTotals
+}
+
+type AdUnitReportCSVRow {
+  site: String!
+  date: String!
+  name: String!
+  country: String!
+  impressions: Float!
+  clicks: Float!
+  ctr: Float!
+  ecpm: Float!
+  revenue: Float!
+  totalRequests: Float!
+  costPerClick: Float!
+  matchRate: Float!
+}
+
 type Query {
   getAdUnitReports(
     site: [String!]
@@ -76,5 +97,15 @@ type Query {
     limit: Int!
     byDated: Boolean!
   ): PaginatedAdUnitReports!
+}
+
+type Mutation {
+  downloadAdUnitReportCSV(
+    site: [String!]
+    country: [String]
+    startDate: String!
+    endDate: String!
+    byDated: Boolean!
+  ): AdUnitReportCSVData!
 }
 `;

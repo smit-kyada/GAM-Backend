@@ -47,6 +47,26 @@ type PaginatedHoursWise {
   totals: HoursWiseTotals
 }
 
+type HoursWiseCSVData {
+  csvData: String!
+  totalRecords: Int!
+  totals: HoursWiseTotals
+}
+
+type HoursWiseCSVRow {
+  site: String!
+  date: String!
+  hour: Int!
+  impressions: Float!
+  clicks: Float!
+  ctr: Float!
+  ecpm: Float!
+  revenue: Float!
+  totalRequests: Float!
+  costPerClick: Float!
+  matchRate: Float!
+}
+
 type Query {
   getHoursWiseReports(
     site: [String!]
@@ -90,6 +110,12 @@ type Mutation {
   ): HoursWise!
   
   deleteHoursWiseReport(id: ID!): Boolean!
+  
+  downloadHoursWiseCSV(
+    site: [String!]
+    startDate: String!
+    endDate: String!
+  ): HoursWiseCSVData!
 }
 
 input HourStatsInput {
