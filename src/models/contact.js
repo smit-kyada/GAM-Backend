@@ -23,8 +23,6 @@ const contactSchema = new mongoose.Schema(
     }
 );
 
-
-
 contactSchema.plugin(mongoosePaginate);
 
 const Contact = mongoose.model("contact", contactSchema);

@@ -19,11 +19,13 @@ import { ApolloServerPluginLandingPageDisabled } from "apollo-server-core";
 import moment from "moment";
 import { AdsenseConvert } from "./functions/AdsenseConvert.js";
 import { GenerateAdManagerReport } from "./functions/AdManagerReport.js";
-import async from "async"
-import fs from "fs"
+import async from "async";
+import fs from "fs";
 import { generateRandomString } from "./functions/generateRandomString.js";
 import { FourMonthBackup } from "./functions/siteTableBackup.js";
 import { AdsenseTotal } from "./functions/AdsenseTotal.js";
+
+import logger from "./services/logger.js";
 // import AdManager from "./models/adManager.js";
 
 
@@ -90,16 +92,6 @@ app.use((error, req, res, next) => {
         error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
     });
 });
-
-
-
-
-
-
-
-
-
-
 
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -177,30 +169,6 @@ app.get(`/auth/callback`, async (req, res) => {
         res.redirect(`${process.env.MAIN_WEB_URL}?auth_error=true`);
     }
 });
-
-// cronTime: '* * * * *',
-// const generateReport = CronJob.from({
-//     cronTime: '0 * * * *',
-//     onTick: async function () {
-//         try {
-//             console.log("Running scheduled Ad Manager report generation");
-//             const result = await GenerateAdManagerReport();
-//             console.log("Scheduled report generation result:", result);
-//         } catch (error) {
-//             console.log("Scheduled report generation failed:", error);
-//             // Log the error but don't crash the application
-//             await models?.Applog?.create({ 
-//                 title: "Scheduled Report Error", 
-//                 logFor: JSON.stringify(error) 
-//             }).catch(() => {});
-//         }
-//     },
-//     start: true,
-//     timeZone: 'Asia/Kolkata'
-// });
-
-// generateReport;
-
 
 // const fourMonth = CronJob.from({
 //     cronTime: '0 0 * * *',

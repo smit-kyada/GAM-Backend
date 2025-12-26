@@ -304,6 +304,11 @@ export default {
               );
             }
 
+            // Add final sort by revenue in descending order
+            aggregation.push(
+              { $sort: { revenue: -1 } }
+            );
+
             // Add pagination
             aggregation.push(
               {

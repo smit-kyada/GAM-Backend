@@ -14,7 +14,7 @@ const CountryStatsSchema = new mongoose.Schema(
   },
   { _id: false }
 );
-
+ 
 const DailyAdsManagerReportSchema = new mongoose.Schema(
   {
     date: { type: Date, required: true, index: true },
@@ -28,7 +28,7 @@ const DailyAdsManagerReportSchema = new mongoose.Schema(
     totalRequests: { type: Number, default: 0 },
     costPerClick: { type: Number, default: 0 },
     matchRate: { type: Number, default: 0 },
-    country:{type:String,default:""},
+    country:{ type:String, default:"" },
     countries: {
       type: Map,
       of: CountryStatsSchema,

@@ -223,9 +223,9 @@ export default {
           // ---------------------------
           // Final sorting and Pagination
           // ---------------------------
-          // Add final sort to ensure consistent ordering for multiple sites
+          // Add final sort by revenue in descending order
           aggregation.push(
-            { $sort: { site: 1, date: -1 } }
+            { $sort: { revenue: -1 } }
           );
           
           aggregation.push({
