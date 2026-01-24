@@ -213,7 +213,16 @@ export default {
                             $map: {
                               input: { $objectToArray: "$$adUnit.v.countries" },
                               as: "c",
-                              in: { country: "$$c.k", stats: "$$c.v" }
+                              in: { 
+                                country: { 
+                                  $replaceAll: { 
+                                    input: "$$c.k", 
+                                    find: "DOT", 
+                                    replacement: "." 
+                                  } 
+                                }, 
+                                stats: "$$c.v" 
+                              }
                             }
                           }
                         }
@@ -576,7 +585,16 @@ export default {
                             $map: {
                               input: { $objectToArray: "$$adUnit.v.countries" },
                               as: "c",
-                              in: { country: "$$c.k", stats: "$$c.v" }
+                              in: { 
+                                country: { 
+                                  $replaceAll: { 
+                                    input: "$$c.k", 
+                                    find: "DOT", 
+                                    replacement: "." 
+                                  } 
+                                }, 
+                                stats: "$$c.v" 
+                              }
                             }
                           }
                         }

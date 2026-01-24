@@ -11,7 +11,6 @@ import Applog from "./applog.js";
 import Deduction from "./deduction.js";
 import CountryTable from "./countryTable.js";
 import Account from "./account.js";
-import Adsense from "./adsense.js";
 import AdManager from "./adManager.js";
 import AdManagerReport from "./adManagerReport.js";
 import AdManagerData from "./adManagerData.js";
@@ -22,6 +21,7 @@ import DailyAdsManagerReport from "./dailyReport.js";
 import AdUnitReport from "./adUnitReport.js";
 import HourWise from "./hoursWise.js";
 import SiteRequest from "./siteRequest.js";
+import ReportPreset from "./reportPreset.js";
 
 export default {
     User,
@@ -40,7 +40,6 @@ export default {
     HourWise,
     CountryTable,
     Account,
-    Adsense,
     AdManager,
     AdManagerReport,
     AdManagerData,
@@ -48,4 +47,5 @@ export default {
     Contact,
     Queries,
     SiteRequest,
+    ReportPreset,
 }

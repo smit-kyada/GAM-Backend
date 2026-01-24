@@ -15,8 +15,8 @@ The GAM crawlers can authenticate using a service account JSON file. The system 
      - `gam-service-account.json`
      - `google-service-account.json`
 
-3. **GAM Data Folder** (Priority 3):
-   - Checks `../GAM Data/gam-360-471105-0608e8979b03.json`
+3. **GAM Data Folder** (Deprecated):
+   - ~~Checks `../GAM Data/gam-360-471105-0608e8979b03.json`~~ (No longer used - functionality moved to GAM-Backend)
 
 ## Current Configuration
 

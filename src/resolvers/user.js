@@ -3,7 +3,6 @@ import { combineResolvers } from "graphql-resolvers";
 import moment from "moment";
 import mongoose from "mongoose";
 import { emailNotification } from "../functions/emailService.js";
-import { getFullReport, getFullSiteReport, getRangeReport, getReport, getSiteRangeReport, getSiteReport } from "../functions/GenerateAdsenseReport.js";
 import { FilterQuery } from "../functions/generateFilterQuery.js";
 import { GenerateUserObj } from "../functions/GenerateObj.js";
 import { generateToken } from "../functions/generateToken.js";
@@ -22,23 +21,6 @@ import { generatePdf } from "../functions/generateAgreement.js";
 const isValidPhoneNumber = (phoneNumber) => {
     const phoneRegex = /^(?:\+91|91)?\d{10}$/;
     return phoneRegex.test(phoneNumber);
-};
-
-const ObjectId = mongoose.SchemaTypes.ObjectId;
-
-const startOfLastMonth = moment().subtract(1, 'months').startOf('month');
-const endOfLastMonth = moment().subtract(1, 'months').endOf('month');
-
-
-const startDateofMonth = {
-    day: startOfLastMonth.date(),
-    month: startOfLastMonth.month() + 1,
-    year: startOfLastMonth.year()
-};
-const endDateofMonth = {
-    day: endOfLastMonth.date(),
-    month: endOfLastMonth.month() + 1,
-    year: endOfLastMonth.year()
 };
 
 export default {
@@ -75,7 +57,6 @@ export default {
         }),
 
         getUserList: combineResolvers(isAuthenticated, (parent, args, { models, me }) => {
-
 
             return new Promise(async (resolve, reject) => {
 
@@ -127,160 +108,6 @@ export default {
                         .then((result) => { resolve({ count: result?.total || 0, data: result?.docs || [] }) })
                         .catch((error) => { reject(error) })
                 }
-            })
-        }),
-
-        getAdsenseTotalReport: combineResolvers(isAuthenticated, (parent, args, { models, me }) => {
-
-            return new Promise(async (resolve, reject) => {
-
-                const filter = JSON.parse(args?.filter)
-                const startDate = {}
-                const endDate = {}
-
-                if (filter?.startDate && filter?.endDate) {
-
-                    const startOfLastMonth = moment(filter?.startDate);
-                    const endOfLastMonth = moment(filter?.endDate);
-
-                    startDate.day = startOfLastMonth.date(),
-                        startDate.month = startOfLastMonth.month() + 1,
-                        startDate.year = startOfLastMonth.year()
-                    endDate.day = endOfLastMonth.date(),
-                        endDate.month = endOfLastMonth.month() + 1,
-                        endDate.year = endOfLastMonth.year()
-                }
-
-                if (me?.isAdmin) {
-                    try {
-                        const countrycodes = filter?.countrycode;
-
-                        const reports = {
-                            TODAY: getReport("TODAY", false, filter?.site, countrycodes),
-                            YESTERDAY: getReport("YESTERDAY", false, filter?.site, countrycodes),
-                            LAST_7_DAYS: getReport("LAST_7_DAYS", false, filter?.site, countrycodes),
-                            MONTH_TO_DATE: getReport("MONTH_TO_DATE", false, filter?.site, countrycodes),
-                            LAST_MONTH: getRangeReport(filter?.site, countrycodes, startDateofMonth, endDateofMonth),
-                        };
-
-                        if (filter?.startDate && filter?.endDate) { reports.DATE_RANGE = getRangeReport(filter?.site, countrycodes, startDate, endDate) }
-
-                        resolve(reports)
-
-                    }
-                    catch (error) { reject(error) }
-
-                }
-                else {
-                    if (filter?.site?.length > 0) {
-
-                        const sites = me?.showAllData ? [] : filter?.site;
-                        const countrycodes = filter?.countrycode;
-
-                        try {
-
-                            const reports = {
-                                TODAY: getReport("TODAY", false, sites, countrycodes),
-                                YESTERDAY: getReport("YESTERDAY", false, sites, countrycodes),
-                                LAST_7_DAYS: getReport("LAST_7_DAYS", false, sites, countrycodes),
-                                MONTH_TO_DATE: getReport("MONTH_TO_DATE", false, sites, countrycodes),
-                                LAST_MONTH: getRangeReport(sites, countrycodes, startDateofMonth, endDateofMonth),
-                            };
-
-                            if (filter?.startDate && filter?.endDate) { reports.DATE_RANGE = getRangeReport(sites, countrycodes, startDate, endDate) }
-                            resolve(reports)
-
-                        }
-                        catch (error) { reject(error) }
-                    }
-                    else { reject("You Don't have any alloted site") }
-                }
-            })
-        }),
-
-        getAdsenseSiteTotalReport: combineResolvers(isAuthenticated, (parent, args, { models, me }) => {
-
-
-            return new Promise(async (resolve, reject) => {
-                const filter = JSON.parse(args?.filter)
-                const countrycode = filter?.countrycode;
-
-
-                try {
-                    const reports = {
-                        TODAY: await getSiteReport("TODAY", false, me?.site, countrycode),
-                        YESTERDAY: await getSiteReport("YESTERDAY", false, me?.site, countrycode),
-                        LAST_7_DAYS: await getSiteReport("LAST_7_DAYS", false, me?.site, countrycode),
-                        MONTH_TO_DATE: await getSiteReport("MONTH_TO_DATE", false, me?.site, countrycode),
-                    };
-
-                    resolve(reports)
-
-                } catch (error) {
-                    reject(error)
-                }
-
-            })
-        }),
-
-        getAdsenseFullReport: combineResolvers(isAuthenticated, (parent, args, { models, me }) => {
-
-            return new Promise(async (resolve, reject) => {
-
-                const filter = JSON.parse(args?.filter)
-
-                if (me?.isAdmin) {
-                    try {
-                        const reports = { YEAR_TO_DATE: await getFullReport("YEAR_TO_DATE", filter?.site, filter?.countrycode, args?.limit) }
-
-                        resolve(reports)
-
-                    }
-                    catch (error) { reject(error) }
-
-                } else {
-
-                    if (filter?.site?.length > 0) {
-
-                        const sites = me?.showAllData ? [] : filter?.site;
-
-                        try {
-                            const reports = { YEAR_TO_DATE: await getFullReport("YEAR_TO_DATE", sites, filter?.countrycode, args?.limit) }
-
-                            resolve(reports)
-
-                        }
-                        catch (error) { reject(error) }
-                    }
-                    else {
-                        reject("You Don't have any alloted site")
-                    }
-
-
-                }
-
-
-
-
-            })
-        }),
-
-        getAdsenseFullSiteReport: combineResolvers(isAuthenticated, (parent, args, { models, me }) => {
-
-            return new Promise(async (resolve, reject) => {
-
-                const filter = JSON.parse(args?.filter)
-
-                const countrycode = filter?.countrycode;
-
-                try {
-                    const reports = { YEAR_TO_DATE: await getFullSiteReport("YEAR_TO_DATE", false, me?.site, countrycode) }
-
-                    resolve(reports)
-
-                }
-                catch (error) { reject(error) }
-
             })
         }),
 
@@ -553,7 +380,6 @@ export default {
 
             })
         },
-
         reSendOTP: async (parent, { id, otpType }, { models, secret }) => {
 
             return new Promise(async (resolve, reject) => {
@@ -586,7 +412,6 @@ export default {
             })
 
         },
-
         verifyLoginOtp: async (parent, { input }, { models, secret }) => {
             return new Promise(async (resolve, reject) => {
 
@@ -627,13 +452,11 @@ export default {
             })
 
         },
-
         getMe: combineResolvers(isAuthenticated, (parent, args, { models, me }) => {
             return new Promise(async (resolve, reject) => {
                 resolve(me)
             })
         }),
-
         importUser: combineResolvers(isAdmin, (parent, { input }, { models, me }) => {
             return new Promise(async (resolve, reject) => {
                 let counter = 0;
@@ -655,7 +478,6 @@ export default {
                 )
             })
         }),
-
         addUser: combineResolvers(isAdmin, (parent, { input }, { models, me }, info) => {
             return new Promise(async (resolve, reject) => {
                 const { userName, email } = input;
@@ -674,7 +496,6 @@ export default {
                 }).catch((error) => reject(error))
             })
         }),
-
         updateUser: combineResolvers(isAuthenticated, (parent, { input }, { models, me, secret }, info) => {
             return new Promise(async (resolve, reject) => {
                 delete input?.password;
@@ -686,7 +507,6 @@ export default {
 
             })
         }),
-
         blockUser: combineResolvers(isAdmin, (parent, { input }, { models, me, secret }, info) => {
             return new Promise(async (resolve, reject) => {
                 await models?.User.findOneAndUpdate({ _id: input?.id, isDeleted: false }, { block: input?.block }, { new: true })
@@ -709,7 +529,6 @@ export default {
 
             })
         }),
-
         inActiveUser: combineResolvers(isAdmin, (parent, { input }, { models, me, secret }, info) => {
             return new Promise(async (resolve, reject) => {
                 await models?.User.findOneAndUpdate({ _id: input?.id, isDeleted: false }, { isActive: input?.isActive }, { new: true })
@@ -731,7 +550,6 @@ export default {
 
             })
         }),
-
         updatePassword: combineResolvers(isAuthenticated, (parent, { id, password }, { models, me, secret }) => {
             return new Promise(async (resolve, reject) => {
 
@@ -747,7 +565,6 @@ export default {
                     })
             })
         }),
-
         deleteUser: combineResolvers(isAdmin, (parent, { id }, { models, me }, info) => {
 
             return new Promise(async (resolve, reject) => {
@@ -761,7 +578,6 @@ export default {
                     })
             })
         }),
-
         forgotPassword: async (parent, { email }, { models }) => {
             const user = await models.User.findOne({ email, isDeleted: false });
             let isMobileView = false;
@@ -773,7 +589,6 @@ export default {
             await user.save();
             return true;
         },
-
         // resetPassword by the code sent to email
         resetPassword: async (parent, { code, password }, { models }) => {
             const user = await models.User.findOne({ code, isDeleted: false });
@@ -785,7 +600,6 @@ export default {
             await user.save();
             return true;
         },
-
         generateAdminToken: combineResolvers(isAdmin, (parent, { id }, { models, me, secret }, info) => {
 
             const token = generateRandomString(100)
@@ -796,86 +610,6 @@ export default {
                     .catch((error) => reject(error))
             })
         }),
-
-        genrateAdsenseExcel: combineResolvers(isAuthenticated, (parent, { input }, { models, me }) => {
-
-            return new Promise(async (resolve, reject) => {
-
-                const filter = JSON.parse(input)
-
-                if (me?.isAdmin) {
-                    try {
-                        const reports = { YEAR_TO_DATE: await getFullReport("YEAR_TO_DATE", filter?.site, filter?.countrycode) }
-                        const renamedData = reports?.YEAR_TO_DATE?.total?.map(item => ({
-                            'Site': item.DOMAIN_NAME,
-                            'Date': item.DATE,
-                            'Country Code': item.COUNTRY_CODE,
-                            'Country Name': item.COUNTRY_NAME,
-                            'Impressions': item.IMPRESSIONS,
-                            'Clicks': item.CLICKS,
-                            'Page Views': item.PAGE_VIEWS,
-                            'Estimated Earnings': item.ESTIMATED_EARNINGS,
-                            'Page Views RPM': item.PAGE_VIEWS_RPM,
-                            'Impressions RPM': item.IMPRESSIONS_RPM,
-                            'Active View Viewability': item.ACTIVE_VIEW_VIEWABILITY
-                        }));
-
-                        const fileName = `${process.env.ASSETS_STORAGE}/${me?.id}.xlsx`;
-                        const worksheet = XLSX.utils.json_to_sheet(renamedData);
-                        const workbook = XLSX.utils.book_new();
-                        XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
-                        XLSX.writeFile(workbook, fileName);
-                        resolve(fileName.replace(process.env.ASSETS_STORAGE, ""))
-
-                    }
-                    catch (error) {
-                        console.log("🚀 ~ file: user.js:561 ~ returnnewPromise ~ error:", error)
-                        reject(error)
-                    }
-
-                } else {
-                    if (filter?.site?.length > 0) {
-                        const sites = me?.showAllData ? [] : filter?.site;
-                        try {
-                            const reports = { YEAR_TO_DATE: await getFullReport("YEAR_TO_DATE", sites, filter?.countrycode) }
-                            const renamedData = reports?.YEAR_TO_DATE?.total?.map(item => ({
-                                'Site': item.DOMAIN_NAME,
-                                'Date': item.DATE,
-                                'Country Code': item.COUNTRY_CODE,
-                                'Country Name': item.COUNTRY_NAME,
-                                'Impressions': item.IMPRESSIONS,
-                                'Clicks': item.CLICKS,
-                                'Page Views': item.PAGE_VIEWS,
-                                'Estimated Earnings': item.ESTIMATED_EARNINGS,
-                                'Page Views RPM': item.PAGE_VIEWS_RPM,
-                                'Impressions RPM': item.IMPRESSIONS_RPM,
-                                'Active View Viewability': item.ACTIVE_VIEW_VIEWABILITY
-                            }));
-
-                            const fileName = `${process.env.ASSETS_STORAGE}/${me?.id}.xlsx`;
-                            const worksheet = XLSX.utils.json_to_sheet(renamedData);
-                            const workbook = XLSX.utils.book_new();
-                            XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
-                            XLSX.writeFile(workbook, fileName);
-                            resolve(fileName.replace(process.env.ASSETS_STORAGE, ""))
-
-                        }
-                        catch (error) {
-                            console.log("🚀 ~ file: user.js:583 ~ returnnewPromise ~ error:", error)
-                            reject(error)
-                        }
-                    }
-                    else {
-                        reject("You Don't have any alloted site")
-                    }
-
-
-                }
-
-            })
-        }),
-
-
         DownloadAgreement: combineResolvers(isAuthenticated, (parent, { input }, { models, me }) => {
 
             return new Promise(async (resolve, reject) => {
@@ -940,7 +674,5 @@ export default {
             })
 
         },
-
-
     }
 }

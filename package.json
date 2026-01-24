@@ -6,10 +6,10 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:adUnitWise": "node scripts/test-adUnitWise-crawler.js",
     "start": "supervisor src/index.js",
     "run-prod": "node src/index.js",
-    "test-crawlers": "node src/functions/testCrawlers.js",
-    "run-crawlers": "node src/functions/testCrawlers.js --run"
+    "count-crawlers": "node src/scripts/countCrawlers.js"
   },
   "author": "",
   "license": "ISC",

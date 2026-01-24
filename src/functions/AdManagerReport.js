@@ -1,81 +1,82 @@
 // CommonJS module for Ad Manager report generation
-import { google } from 'googleapis';
-import { NetworkServiceClient } from '@google-ads/admanager';
 import async from 'async';
-import { AdManagerConvert } from './AdsenseConvert.js';
+import { AdManagerConvert } from './AdManagerConvert.js';
 import { GenerateAdManagerReportObj } from './GenerateObj.js';
-import AdManager from '../models/adManager.js';
-
-// Create OAuth2 client
-const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    `${process.env.CALLBACK_URL}/auth/callback`
-);
+import models from '../models/index.js';
+import GAMClientPythonBridge from './gamClientPythonBridge.js';
 
 /**
- * Generate Ad Manager report using Google Ad Manager API
- * @param {Object} models - Database models
- * @param {Object} authData - Authentication data with tokens
- * @param {String} dateRange - Date range for the report (e.g., "LAST_7_DAYS")
- * @param {Array} dimensions - Report dimensions
- * @param {Array} metrics - Report metrics
+ * Generate Ad Manager report using Python Bridge
  * @returns {Promise} - Promise resolving to report data
  */
+
 const GenerateAdManagerReport = async () => {
     try {
-        // Use provided auth data or get tokens from database
-        const tokens = await AdManager?.findOne({ isDeleted: false });
-        console.log("Using tokens for Ad Manager API");
-        if (!tokens) {
-            console.log("No Ad Manager tokens found - skipping report generation");
-            return { status: false, message: "No Ad Manager tokens found" };
-        }
-
-        // Check if GAM_NETWORK_CODE is properly set
-        const networkCode = process.env.GAM_NETWORK_CODE;
-        if (!networkCode) {
-            console.log("Invalid GAM_NETWORK_CODE - skipping report generation");
-            return { status: false, message: "Invalid GAM_NETWORK_CODE configuration" };
-        }
-
-        // Set credentials
-        oauth2Client.setCredentials(tokens);
+        console.log("✅ Starting Ad Manager report generation using Python Bridge...");
 
         // Create report query for Ad Manager using parameters or defaults
+        // NOTE: googleads ReportService expects startDate/endDate when using the Python bridge.
+        // We'll always send CUSTOM_DATE to avoid [NotNullError.NULL @ reportQuery.startDate].
+        const now = new Date();
+        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startDate = new Date(endDate);
+        startDate.setDate(startDate.getDate() - 6); // last 7 days inclusive
+
         const reportQuery = {
-            dimensions: ["DATE", "AD_EXCHANGE_DOMAIN", "COUNTRY_NAME"],
+            // Use SITE_NAME + line-item-level Ad Exchange columns (these are confirmed working with v202505 via Python bridge)
+            dimensions: ["SITE_NAME", "DATE", "COUNTRY_NAME", 'MOBILE_APP_RESOLVED_ID', 'MOBILE_APP_NAME', 'MOBILE_INVENTORY_TYPE', 'INVENTORY_FORMAT', 'LINE_ITEM_NAME', 'DOMAIN'],
             columns: [
-                "AD_EXCHANGE_ESTIMATED_REVENUE",
-                "AD_EXCHANGE_IMPRESSIONS", 
-                "AD_EXCHANGE_CLICKS",
-                "AD_EXCHANGE_ECPM"
+                "AD_EXCHANGE_LINE_ITEM_LEVEL_REVENUE",
+                "AD_EXCHANGE_LINE_ITEM_LEVEL_IMPRESSIONS",
+                "AD_EXCHANGE_LINE_ITEM_LEVEL_CLICKS",
+                "AD_EXCHANGE_LINE_ITEM_LEVEL_AVERAGE_ECPM"
             ],
-            dateRangeType: "LAST_7_DAYS"
+            dateRangeType: "CUSTOM_DATE",
+            startDate: {
+                year: startDate.getFullYear(),
+                month: startDate.getMonth() + 1,  
+                day: startDate.getDate()
+            },
+            endDate: {
+                year: endDate.getFullYear(),
+                month: endDate.getMonth() + 1,
+                day: endDate.getDate()
+            }
         };
 
-        // const reportRequest = {
-        //         displayName: 'Ad Exchange Performance Report',
-        //         reportDefinition: {
-        //             reportType: 'HISTORICAL',
-        //             dateRange: {
-        //                 relative: 'THIS_MONTH'
-        //             },
-        //             dimensions: ['DATE', 'AD_UNIT_NAME'],
-        //             metrics: [
-        //             'AD_EXCHANGE_IMPRESSIONS',
-        //             'AD_EXCHANGE_CLICKS',
-        //             'AD_EXCHANGE_REVENUE'  
-        //             ],
-        //             timeZoneSource: 'PUBLISHER'
-        //         }
-        //     };
-
         try {
-            // Call Ad Manager Report Service via REST API
-            const reportData = await getAdManagerReportData(reportQuery, oauth2Client);
-            const gamData = AdManagerConvert(reportData);
+            // Call Ad Manager Report Service via Python Bridge
+            console.log("📊 Fetching Ad Manager report data...");
+            const gamClient = new GAMClientPythonBridge();
+            const rawData = await gamClient.fetchReportData(reportQuery);
+            
+            // Convert Python bridge object array format to array-of-arrays format for AdManagerConvert
+            if (!rawData || rawData.length === 0) {
+                console.log("No data returned from Python bridge");
+                return { status: false, message: "No data returned from Ad Manager API" };
+            }
+            
+            // Normalize Python bridge keys:
+            // - CSV headers often come back as "Dimension.X" and "Column.Y"
+            // - Our JS pipeline expects plain "X" and "Y"
+            const normalizeRow = (row) => {
+                const out = {};
+                for (const [k, v] of Object.entries(row || {})) {
+                    const nk = k.replace(/^Dimension\./, '').replace(/^Column\./, '');
+                    out[nk] = v;
+                }
+                return out;
+            };
 
+            const normalizedRows = rawData.map(normalizeRow);
+            const headers = [...reportQuery.dimensions, ...reportQuery.columns];
+            const reportData = [
+                headers,
+                ...normalizedRows.map(row => headers.map(header => row?.[header] ?? ''))
+            ];
+            
+            const gamData = AdManagerConvert(reportData);
+            console.log("📊 gamData total count:", gamData?.total?.length || 0);
             let counter = 0;
             return await async.eachSeries(
                 gamData?.total,
@@ -107,123 +108,21 @@ const GenerateAdManagerReport = async () => {
                 }
             );
         } catch (apiError) {
-            console.log("Ad Manager API error - using mock data:", apiError.message);
-            // Log the error but don't fail the login process
+            console.log("Ad Manager API error:", apiError.message);
+            // Log the error
             await models?.Applog?.create({ 
                 title: "Ad Manager API Error", 
                 logFor: JSON.stringify(apiError) 
             }).catch(() => {});
             
-            return { status: true, message: "Login successful, but Ad Manager report generation skipped due to API error" };
+            return { status: false, message: "Ad Manager report generation failed due to API error", error: apiError.message };
         }
     } catch (error) {
         console.log("GenerateAdManagerReport error:", error);
         await models?.Applog?.create({ title: "Generate GAM Report Error", logFor: JSON.stringify(error) })
             .catch(() => {});
         
-        // Don't fail the login process due to report generation errors
-        return { status: true, message: "Login successful, but Ad Manager report generation failed" };
-    }
-};
-
-// Helper function to get Ad Manager report data via REST API
-const getAdManagerReportData = async (reportQuery, oauth2Client) => {
-    try {
-        const accessToken = oauth2Client.credentials.access_token;
-        const networkCode = process.env.GAM_NETWORK_CODE;
-        
-        console.log("Debug - GAM_NETWORK_CODE:", networkCode || "Not set");
-        console.log("Debug - Access Token:", accessToken ? "Present" : "Missing");
-        
-        if (!networkCode || networkCode.trim() === '' || networkCode.includes('localhost') || networkCode.includes('http')) {
-            console.log("GAM_NETWORK_CODE not set or invalid, using mock data");
-            return [
-                ["DATE", "AD_EXCHANGE_DOMAIN", "AD_EXCHANGE_ESTIMATED_REVENUE", "AD_EXCHANGE_IMPRESSIONS", "AD_EXCHANGE_CLICKS"],
-                ["2025-01-31", "example.com", "15.50", "1000", "25"],
-                ["2025-01-31", "test.com", "8.75", "750", "12"]
-            ];
-        }
-
-        try {
-            // Import the ReportService for running reports
-            
-            // Instantiate the report service client with explicit auth
-            const reportServiceClient = new ReportServiceClient({
-                authClient: oauth2Client,
-                fallback: true // Use REST instead of gRPC if needed
-            });
-            
-            // Alternative method - set auth after instantiation
-            // reportServiceClient.auth = oauth2Client;
-
-            // Define the report request
-            const reportRequest = {
-                parent: `networks/${networkCode}`,
-                report: {
-                    displayName: 'Ad Exchange Performance Report',
-                    reportDefinition: {
-                        reportType: 'HISTORICAL', // or 'REACH'
-                        dateRange: {
-                            relative: 'THIS_MONTH'
-                        },
-                        dimensions: ['DATE', 'AD_UNIT_NAME'],
-                        metrics: [
-                            'AD_EXCHANGE_IMPRESSIONS',
-                            'AD_EXCHANGE_CLICKS', 
-                            'AD_EXCHANGE_ESTIMATED_REVENUE'
-                        ],
-                        timeZoneSource: 'PUBLISHER'
-                    }
-                }
-            };
-            
-            // Create the report
-            const [report] = await reportServiceClient.createReport(reportRequest);
-            console.log("Report created:", report.name);
-            
-            // Run the report
-            const runRequest = {
-                name: report.name
-            };
-            
-            const [operation] = await reportServiceClient.runReport(runRequest);
-            console.log("Report run operation started:", operation.name);
-            
-            // Wait for the operation to complete
-            const [completedOperation] = await operation.promise();
-            console.log("Report completed:", completedOperation);
-            
-            // Fetch the report results
-            const fetchRequest = {
-                name: report.name,
-                pageSize: 1000 // Adjust as needed
-            };
-            
-            const [reportRows] = await reportServiceClient.fetchReportResultRows(fetchRequest);
-            
-            // Process the results
-            const processedData = processReportResults(reportRows);
-            return processedData;
-            
-        } catch (error) {
-            console.log("Ad Manager API error:", error.message);
-            console.log("Full error:", error);
-            
-            // Return mock data on API error
-            return [
-                ["DATE", "AD_EXCHANGE_DOMAIN", "AD_EXCHANGE_ESTIMATED_REVENUE", "AD_EXCHANGE_IMPRESSIONS", "AD_EXCHANGE_CLICKS"],
-                ["2025-01-31", "example.com", "15.50", "1000", "25"],
-                ["2025-01-31", "test.com", "8.75", "750", "12"]
-            ];
-        }
-
-    } catch (error) {
-        console.log("getAdManagerReportData error:", error);
-        return [
-            ["DATE", "AD_EXCHANGE_DOMAIN", "AD_EXCHANGE_ESTIMATED_REVENUE", "AD_EXCHANGE_IMPRESSIONS", "AD_EXCHANGE_CLICKS"],
-            ["2025-01-31", "example.com", "15.50", "1000", "25"],
-            ["2025-01-31", "test.com", "8.75", "750", "12"]
-        ];
+        return { status: false, message: "Ad Manager report generation failed", error: error.message };
     }
 };
 
@@ -244,6 +143,5 @@ const buildAdManagerQuery = (reportQuery) => {
 
 export {
     GenerateAdManagerReport,
-    getAdManagerReportData,
     buildAdManagerQuery
 };

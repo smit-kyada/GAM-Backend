@@ -510,11 +510,7 @@ export default {
         }),
 
         importCountryTable: combineResolvers(isAdmin, (parent, { input }, { models, me }, info) => {
-
             return new Promise(async (resolve, reject) => {
-
-
-
                 let counter = 0;
                 async.eachSeries(
                     input,

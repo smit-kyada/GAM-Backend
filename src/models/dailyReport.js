@@ -29,6 +29,8 @@ const DailyAdsManagerReportSchema = new mongoose.Schema(
     costPerClick: { type: Number, default: 0 },
     matchRate: { type: Number, default: 0 },
     country:{ type:String, default:"" },
+    appId: { type: String, default: null, index: true },
+    appName: { type: String, default: null },
     countries: {
       type: Map,
       of: CountryStatsSchema,
@@ -42,6 +44,7 @@ const DailyAdsManagerReportSchema = new mongoose.Schema(
 );
 
 DailyAdsManagerReportSchema.index({ site: 1, date: -1 });
+DailyAdsManagerReportSchema.index({ appId: 1, date: -1 });
 
 DailyAdsManagerReportSchema.plugin(mongoosePaginate);
 

@@ -34,49 +34,6 @@ type User {
     pincode:Number
 }
 
-type AdsenseReportObj{
-    id:String
-    DOMAIN_NAME:String
-    COUNTRY_CODE:String
-    COUNTRY_NAME:String
-    DATE:String
-    IMPRESSIONS:String
-    CLICKS:String
-    PAGE_VIEWS:String
-    ESTIMATED_EARNINGS:String
-    PAGE_VIEWS_RPM:String
-    IMPRESSIONS_RPM:String
-    ACTIVE_VIEW_VIEWABILITY:String
-}
-type AdsenseTotalReport{
-  
-    ESTIMATED_EARNINGS:String
-}
-
-type AdsenseTotal{
-    total:AdsenseTotalReport
-}
-
-type AdsenseReport{
-    total:[AdsenseReportObj]
-}
-
-type AdsenseFullReportRes{
-    YEAR_TO_DATE:AdsenseReport 
-}
-
-
-type AdsenseReportRes {
-    TODAY:AdsenseTotal
-    YESTERDAY:AdsenseTotal
-    LAST_7_DAYS:AdsenseTotal
-    MONTH_TO_DATE:AdsenseTotal
-    LAST_MONTH:AdsenseTotal
-    YEAR_TO_DATE:AdsenseReport
-    DATE_RANGE:AdsenseTotal
-
-}
-
 type UserRes {
     count: Number
     data: [User]
@@ -221,10 +178,6 @@ extend type Query {
     getUser(id: ID): User
     getUserList(page: Number, limit: Number, filter: String, isSearch: Boolean, search: String): UserRes
     getSubAdminUser(page: Number, limit: Number, filter: String, isSearch: Boolean, search: String): UserRes
-    getAdsenseTotalReport(page: Number, limit: Number, filter: String, isSearch: Boolean, search: String): AdsenseReportRes
-    getAdsenseSiteTotalReport(page: Number, limit: Number, filter: String, isSearch: Boolean, search: String): AdsenseReportRes
-    getAdsenseFullReport(page: Number, limit: Number, filter: String, isSearch: Boolean, search: String): AdsenseFullReportRes
-    getAdsenseFullSiteReport(page: Number, limit: Number, filter: String, isSearch: Boolean, search: String): AdsenseFullReportRes
     getAdminToken(id:ID): String
     getJWTUserId(token:String): User
     IsUserBankAcc(id:ID):Boolean
@@ -250,7 +203,6 @@ extend type Mutation {
     forgotPassword(email: String): Boolean
     resetPassword(id: ID, code: String, password: String): Boolean
     generateAdminToken(id:ID): String
-    genrateAdsenseExcel(input: String): String
     DownloadAgreement(input: String): String
 }
 

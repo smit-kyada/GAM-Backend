@@ -13,14 +13,15 @@ This guide documents the performance improvements implemented to handle 1 millio
   - File Upload: 10 uploads/hour per IP
 - **Benefits**: Prevents API abuse and ensures fair usage
 
-### 2. **Redis Caching** ✅
+### 2. **In-Memory Caching** ✅
 - **File**: `src/services/cache.js`
 - **Features**:
   - User session caching (30 minutes)
   - Site session caching (30 minutes)
   - JWT token blacklisting
   - API response caching
-- **Benefits**: Reduces database load by 60-80%
+  - Lightweight in-memory Map-based cache
+- **Benefits**: Reduces database load by 60-80% (no external dependencies)
 
 ### 3. **Structured Logging** ✅
 - **File**: `src/services/logger.js`
@@ -60,21 +61,12 @@ This guide documents the performance improvements implemented to handle 1 millio
 ## 🛠️ Setup Instructions
 
 ### Prerequisites
-1. **Redis Server** (for caching)
-2. **MongoDB** (optimized)
-3. **Node.js 16+**
+1. **MongoDB** (optimized)
+2. **Node.js 16+**
 
 ### Installation
 
-1. **Install Redis** (Ubuntu/Debian):
-```bash
-sudo apt update
-sudo apt install redis-server
-sudo systemctl start redis
-sudo systemctl enable redis
-```
-
-2. **Install Dependencies**:
+1. **Install Dependencies**:
 ```bash
 npm install
 ```
@@ -124,12 +116,6 @@ npm run perf:test:prod
 ### Environment Variables
 
 ```bash
-# Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_DB=0
-
 # Performance Settings
 MAX_REQUEST_SIZE=10mb
 RATE_LIMIT_WINDOW_MS=900000
@@ -165,7 +151,7 @@ Response:
   "timestamp": "2024-01-01T00:00:00.000Z",
   "uptime": 3600,
   "database": "connected",
-  "redis": "connected",
+  "cache": "in-memory",
   "memory": {
     "rss": "150.25 MB",
     "heapUsed": "120.50 MB",
@@ -190,14 +176,9 @@ pm2 status
 
 ### Common Issues
 
-1. **Redis Connection Failed**
-   ```bash
-   # Check Redis status
-   sudo systemctl status redis
-   
-   # Start Redis
-   sudo systemctl start redis
-   ```
+1. **Cache Service Issues**
+
+**Solution**: The in-memory cache is always available and doesn't require any external service. If you need persistent caching, consider implementing a database-backed cache.
 
 2. **High Memory Usage**
    ```bash
@@ -317,7 +298,7 @@ For performance-related issues:
 1. Check the logs: `npm run logs:pm2`
 2. Monitor health: `curl http://localhost:3001/health`
 3. Run performance tests: `npm run perf:test`
-4. Check Redis connection: `redis-cli ping`
+4. Check cache service: The in-memory cache is automatically initialized on server start
 
 ---
 

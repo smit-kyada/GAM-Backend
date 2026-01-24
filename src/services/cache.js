@@ -1,140 +1,53 @@
-import Redis from 'ioredis';
+/**
+ * In-Memory Cache Service
+ * Provides caching functionality using in-memory Map storage
+ * Redis has been removed - using lightweight in-memory cache instead
+ */
 
 class CacheService {
     constructor() {
-        this.redis = null;
-        this.isConnected = false;
-        this.init();
-    }
-
-    init() {
-        try {
-            // Check if Redis is available
-            if (process.env.REDIS_HOST === 'disabled') {
-                console.log('ℹ️ Redis disabled by configuration');
-                this.isConnected = false;
-                return;
-            }
-
-            this.redis = new Redis({
-                host: process.env.REDIS_HOST || 'localhost',
-                port: process.env.REDIS_PORT || 6379,
-                password: process.env.REDIS_PASSWORD || undefined,
-                db: process.env.REDIS_DB || 0,
-                retryDelayOnFailover: 100,
-                maxRetriesPerRequest: 3,
-                lazyConnect: true,
-                connectTimeout: 5000, // Reduced timeout
-                commandTimeout: 3000, // Reduced timeout
-            });
-
-            this.redis.on('connect', () => {
-                console.log('✅ Redis connected successfully');
-                this.isConnected = true;
-            });
-
-            this.redis.on('error', (err) => {
-                console.log('⚠️ Redis not available, using in-memory fallback');
-                this.isConnected = false;
-                this.fallbackCache = new Map(); // Fallback to in-memory cache
-            });
-
-            this.redis.on('close', () => {
-                console.log('⚠️ Redis connection closed');
-                this.isConnected = false;
-            });
-
-        } catch (error) {
-            console.log('⚠️ Redis initialization failed, using in-memory fallback:', error.message);
-            this.isConnected = false;
-            this.fallbackCache = new Map(); // Fallback to in-memory cache
-        }
+        this.cache = new Map();
+        this.timers = new Map(); // Store timers for TTL
+        console.log('✅ In-memory cache service initialized');
     }
 
     async get(key) {
-        // Try Redis first
-        if (this.isConnected && this.redis) {
-            try {
-                const value = await this.redis.get(key);
-                return value ? JSON.parse(value) : null;
-            } catch (error) {
-                console.error('Redis get error:', error);
-                // Fall back to in-memory cache
-            }
-        }
-        
-        // Fallback to in-memory cache
-        if (this.fallbackCache) {
-            return this.fallbackCache.get(key) || null;
-        }
-        
-        return null;
+        return this.cache.get(key) || null;
     }
 
     async set(key, value, ttl = 3600) {
-        // Try Redis first
-        if (this.isConnected && this.redis) {
-            try {
-                const serializedValue = JSON.stringify(value);
-                await this.redis.setex(key, ttl, serializedValue);
-                return true;
-            } catch (error) {
-                console.error('Redis set error:', error);
-                // Fall back to in-memory cache
-            }
+        // Clear existing timer if any
+        if (this.timers.has(key)) {
+            clearTimeout(this.timers.get(key));
         }
         
-        // Fallback to in-memory cache
-        if (this.fallbackCache) {
-            this.fallbackCache.set(key, value);
-            // Set expiration for in-memory cache
-            setTimeout(() => {
-                this.fallbackCache?.delete(key);
+        // Set the value
+        this.cache.set(key, value);
+        
+        // Set expiration timer
+        if (ttl > 0) {
+            const timer = setTimeout(() => {
+                this.cache.delete(key);
+                this.timers.delete(key);
             }, ttl * 1000);
-            return true;
+            this.timers.set(key, timer);
         }
         
-        return false;
+        return true;
     }
 
     async del(key) {
-        // Try Redis first
-        if (this.isConnected && this.redis) {
-            try {
-                await this.redis.del(key);
-                return true;
-            } catch (error) {
-                console.error('Redis delete error:', error);
-                // Fall back to in-memory cache
-            }
+        // Clear timer if exists
+        if (this.timers.has(key)) {
+            clearTimeout(this.timers.get(key));
+            this.timers.delete(key);
         }
         
-        // Fallback to in-memory cache
-        if (this.fallbackCache) {
-            return this.fallbackCache.delete(key);
-        }
-        
-        return false;
+        return this.cache.delete(key);
     }
 
     async exists(key) {
-        // Try Redis first
-        if (this.isConnected && this.redis) {
-            try {
-                const result = await this.redis.exists(key);
-                return result === 1;
-            } catch (error) {
-                console.error('Redis exists error:', error);
-                // Fall back to in-memory cache
-            }
-        }
-        
-        // Fallback to in-memory cache
-        if (this.fallbackCache) {
-            return this.fallbackCache.has(key);
-        }
-        
-        return false;
+        return this.cache.has(key);
     }
 
     // User session caching
@@ -193,26 +106,31 @@ class CacheService {
 
     // Health check
     async healthCheck() {
-        if (this.isConnected && this.redis) {
-            try {
-                await this.redis.ping();
-                return true;
-            } catch (error) {
-                console.error('Redis health check failed:', error);
-                return false;
-            }
-        }
-        
-        // Return true if fallback cache is available
-        return this.fallbackCache !== undefined;
+        return true; // In-memory cache is always available
     }
 
-    // Close connection
-    async close() {
-        if (this.redis) {
-            await this.redis.quit();
-            this.isConnected = false;
+    // Clear all cache
+    async clear() {
+        // Clear all timers
+        for (const timer of this.timers.values()) {
+            clearTimeout(timer);
         }
+        this.timers.clear();
+        this.cache.clear();
+        return true;
+    }
+
+    // Get cache statistics
+    getStats() {
+        return {
+            size: this.cache.size,
+            keys: Array.from(this.cache.keys())
+        };
+    }
+
+    // Close/cleanup
+    async close() {
+        await this.clear();
     }
 }
 

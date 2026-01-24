@@ -15,19 +15,14 @@ import resolvers from "./resolvers/index.js";
 import Api from "./routes/index.js";
 import typeDefs from "./schema/index.js";
 import Socket from "./socket/index.js";
-import { ApolloServerPluginLandingPageDisabled } from "apollo-server-core";
-import moment from "moment";
-import { AdsenseConvert } from "./functions/AdsenseConvert.js";
 import { GenerateAdManagerReport } from "./functions/AdManagerReport.js";
-import async from "async";
 import fs from "fs";
 import { generateRandomString } from "./functions/generateRandomString.js";
 import { FourMonthBackup } from "./functions/siteTableBackup.js";
-import { AdsenseTotal } from "./functions/AdsenseTotal.js";
+import { runCrawler } from "./functions/crawlerService.js";
 
 import logger from "./services/logger.js";
 // import AdManager from "./models/adManager.js";
-
 
 
 let ObjectId = mongoose.Types.ObjectId;
@@ -104,6 +99,34 @@ const oauth2Client = new google.auth.OAuth2(
 
 console.log("OAuth callback URL:", `${process.env.CALLBACK_URL}/auth/callback`);
 
+// Simple endpoint to generate AdManager tokens (no admin token required)
+app.get("/authorize", async (req, res) => {
+    try {
+        const authUrl = oauth2Client.generateAuthUrl({
+            access_type: "offline",
+            scope: [
+                // Google Ad Manager API (modern)
+                // "https://www.googleapis.com/auth/dfatrafficking",
+                // "https://www.googleapis.com/auth/dfareporting",
+                "https://www.googleapis.com/auth/admanager",
+                // AdSense read scope (for existing functionality)
+                // "https://www.googleapis.com/auth/adsense.readonly"
+            ],
+            prompt: 'consent'
+        });
+
+        console.log("🔗 Redirecting to Google OAuth:", authUrl);
+        res.redirect(authUrl);
+    } catch (error) {
+        console.log("Authorization error:", error);
+        res.status(500).json({
+            status: false,
+            message: "Failed to generate authorization URL",
+            error: error.message
+        });
+    }
+});
+
 app.get("/authorize/:token", async (req, res) => {
 
     const authUrl = oauth2Client.generateAuthUrl({
@@ -138,12 +161,23 @@ app.get("/authorize/:token", async (req, res) => {
 app.get(`/auth/callback`, async (req, res) => {
     try {
         const code = req.query.code;
+        if (!code) {
+            console.log("❌ No authorization code received");
+            return res.redirect(`${process.env.MAIN_WEB_URL || 'http://localhost:3001'}?auth_error=no_code`);
+        }
+
+        console.log("✅ Authorization code received, exchanging for tokens...");
         const { tokens } = await oauth2Client.getToken(code);
+        console.log("✅ Tokens received successfully");
 
         await models.AdManager?.findOneAndUpdate({ isDeleted: false }, tokens, { upsert: true, new: true })
-            .then((result) => { oauth2Client.setCredentials(tokens) })
+            .then((result) => { 
+                oauth2Client.setCredentials(tokens);
+                console.log("✅ AdManager tokens saved to database successfully");
+                console.log("📊 Token expiry:", tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : "N/A");
+            })
             .catch((err) => {
-                console.log("Error saving tokens:", err);
+                console.log("❌ Error saving tokens:", err);
                 fs.writeFile("err.json", JSON.stringify(err));
             });
 
@@ -170,14 +204,91 @@ app.get(`/auth/callback`, async (req, res) => {
     }
 });
 
-// const fourMonth = CronJob.from({
-//     cronTime: '0 0 * * *',
-//     onTick: function () {
-//         FourMonthBackup()
-//     },
-//     start: true,
-//     timeZone: 'Asia/Kolkata'
-// });
+
+// Crawler Cron Jobs - Will be initialized after database connection
+let hourWiseCrawlerJob = null;
+let monthToDateCrawlerJob = null;
+let adUnitWiseCrawlerJob = null;
+
+// Function to initialize crawler cron jobs (called after DB connection)
+const initializeCrawlerJobs = () => {
+    // hourWise crawler - runs every 5 minutes
+    hourWiseCrawlerJob = CronJob.from({
+        cronTime: '0 * * * *', // Every hour at minute 0
+        onTick: async function () {
+            try {
+                // Check if database is connected
+                if (mongoose.connection.readyState !== 1) {
+                    logger.warn('⏰ hourWise crawler skipped: Database not connected');
+                    return;
+                }
+                logger.info('⏰ hourWise crawler triggered by cron job');
+                await runCrawler('hourWise', models);
+            } catch (error) {
+                logger.error(`❌ hourWise crawler cron job error: ${error.message}`);
+                await models?.Applog?.create({
+                    title: "hourWise Crawler Cron Job Error",
+                    logFor: JSON.stringify(error)
+                }).catch(() => { });
+            }
+        },
+        start: true,
+        timeZone: 'Asia/Kolkata'
+    });
+
+    // monthToDate crawler - runs every 24 hours at 8:45 AM
+    monthToDateCrawlerJob = CronJob.from({
+        cronTime: '45 8 * * *', // Every day at 8:45 AM
+        onTick: async function () {
+            try {
+                // Check if database is connected
+                if (mongoose.connection.readyState !== 1) {
+                    logger.warn('⏰ monthToDate crawler skipped: Database not connected');
+                    return;
+                }
+                logger.info('⏰ monthToDate crawler triggered by cron job');
+                await runCrawler('monthToDate', models);
+            } catch (error) {
+                logger.error(`❌ monthToDate crawler cron job error: ${error.message}`);
+                await models?.Applog?.create({
+                    title: "monthToDate Crawler Cron Job Error",
+                    logFor: JSON.stringify(error)
+                }).catch(() => { });
+            }
+        },
+        start: true,
+        timeZone: 'Asia/Kolkata'
+    });
+
+    // adUnitWise crawler - runs every 2 hours
+    adUnitWiseCrawlerJob = CronJob.from({
+        cronTime: '0 */2 * * *', // Every 2 hours at minute 0
+        onTick: async function () {
+            try {
+                // Check if database is connected
+                if (mongoose.connection.readyState !== 1) {
+                    logger.warn('⏰ adUnitWise crawler skipped: Database not connected');
+                    return;
+                }
+                logger.info('⏰ adUnitWise crawler triggered by cron job');
+                await runCrawler('adUnitWise', models);
+            } catch (error) {
+                logger.error(`❌ adUnitWise crawler cron job error: ${error.message}`);
+                await models?.Applog?.create({
+                    title: "adUnitWise Crawler Cron Job Error",
+                    logFor: JSON.stringify(error)
+                }).catch(() => { });
+            }
+        },
+        start: true,
+        timeZone: 'Asia/Kolkata'
+    });
+
+    logger.info('✅ Crawler cron jobs initialized:');
+    logger.info('   - hourWise: Every 1 hours');
+    logger.info('   - monthToDate: Daily at 8:45 AM');
+    logger.info('   - adUnitWise: Every 2 hours');
+};
 
 // Get list of Ad Manager networks (accounts)
 app.get("/networks", async (req, res) => {
@@ -236,28 +347,6 @@ app.get("/ads-manager-report", async (req, res) => {
         });
     }
 });
-
-
-
-// app.get('/test', async (req, res) => {
-
-//     // let user = new models.User({
-//     //     userName: "admin",
-//     //     email: "admin@demo.com",
-//     //     password: "password",
-//     //     role: "admin",
-//     //     isAdmin: true,
-//     // });
-//     // await user.save()
-
-
-
-
-
-//     // return res.json({
-//     //     status: true,
-//     // })
-// })
 
 ObjectId.prototype.valueOf = function () {
     return this.toString();
@@ -356,9 +445,12 @@ async function startServer() {
 
     try {
         await connectDB();
+        
+        // Initialize crawler cron jobs after database connection
+        initializeCrawlerJobs();
 
+        console.log(`🚀 Server is now running on http://localhost:${process.env.PORT}/graphql`);
         const serverGr = httpServer.listen(process.env.PORT, () => {
-            console.log(`🚀 Server is now running on http://localhost:${process.env.PORT}/graphql`);
             console.log(`📊 GraphQL Playground available at http://localhost:${process.env.PORT}/graphql`);
         });
 

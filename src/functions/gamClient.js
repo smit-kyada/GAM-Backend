@@ -48,12 +48,8 @@ class GAMClient {
       }
     }
 
-    // Check in GAM Data folder (if it exists)
-    const gamDataPath = path.resolve(projectRoot, '../GAM Data', 'gam-360-471105-0608e8979b03.json');
-    if (fs.existsSync(gamDataPath)) {
-      logger.info(`Found service account key in GAM Data folder: ${gamDataPath}`);
-      return gamDataPath;
-    }
+    // Note: GAM Data folder is no longer used - service account key should be in project root
+    // Removed check for '../GAM Data' folder as it's been deprecated
 
     logger.warn('No service account key file found. Will use OAuth tokens from database.');
     return null;

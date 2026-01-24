@@ -9,7 +9,6 @@ export const connectDB = async () => {
     mongoose.set("strictQuery", false);
 
     try {
-
         await mongoose.connect(process.env.DATABASE_URL,
             {
                 maxPoolSize: 50,        // tune based on your traffic

@@ -32,6 +32,15 @@ const siteTableSchema = new mongoose.Schema(
         clicks: {
             type: Number,
         },
+        appId: {
+            type: String,
+            default: null,
+            index: true
+        },
+        appName: {
+            type: String,
+            default: null
+        },
         isDeleted: {
             type: Boolean,
             default: false
@@ -41,6 +50,9 @@ const siteTableSchema = new mongoose.Schema(
         timestamps: true,
     }
 );
+
+siteTableSchema.index({ site: 1, date: -1 });
+siteTableSchema.index({ appId: 1, date: -1 });
 
 siteTableSchema.plugin(mongoosePaginate);
 

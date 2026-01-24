@@ -13,7 +13,6 @@ import ApplogSchema from './applog.js'
 import DeductionSchema from './deduction.js'
 import CountryTableSchema from './countryTable.js'
 import AccountSchema from './account.js'
-import AdsenseSchema from './adsense.js'
 import AdManagerSchema from './adManager.js'
 import ContactSchema from './contact.js'
 import QueriesSchema from './queries.js'
@@ -22,6 +21,7 @@ import AdUnitReportSchema from './adUnitReport.js'
 import HoursWiseSchema from './hoursWise.js'
 import TotalRevenueSchema from './totalRevenue.js'
 import SiteRequestSchema from './siteRequest.js'
+import ReportPresetSchema from './reportPreset.js'
 
 const linkSchema = gql`
   scalar Date
@@ -65,7 +65,6 @@ export default [
   DeductionSchema,
   CountryTableSchema,
   AccountSchema,
-  AdsenseSchema,
   AdManagerSchema,
   ContactSchema,
   QueriesSchema,
@@ -73,5 +72,6 @@ export default [
   AdUnitReportSchema,
   HoursWiseSchema,
   TotalRevenueSchema,
-  SiteRequestSchema
+  SiteRequestSchema,
+  ReportPresetSchema
 ]

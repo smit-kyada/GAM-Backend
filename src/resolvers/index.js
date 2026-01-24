@@ -11,7 +11,6 @@ import ApplogResolvers from './applog.js'
 import DeductionResolvers from './deduction.js'
 import CountryTableResolvers from './countryTable.js'
 import AccountResolvers from './account.js'
-import AdsenseResolvers from './adsense.js'
 import AdManagerResolvers from './adManager.js'
 import ContactResolvers from './contact.js'
 import QueriesResolvers from './queries.js'
@@ -20,6 +19,7 @@ import AdUnitReportResolvers from './adUnitReport.js'
 import HoursWiseResolvers from './hoursWise.js'
 import TotalRevenueResolvers from './totalRevenue.js'
 import SiteRequestResolvers from './siteRequest.js'
+import ReportPresetResolvers from './reportPreset.js'
 
 export default [
     userResolvers,
@@ -35,13 +35,13 @@ export default [
     DeductionResolvers,
     CountryTableResolvers,
     AccountResolvers,
-    AdsenseResolvers,
     AdManagerResolvers,
     ContactResolvers,
     QueriesResolvers,
     DailyAdsManagerReportResolvers,
     AdUnitReportResolvers,
-    HoursWiseResolvers,
-    TotalRevenueResolvers,
-    SiteRequestResolvers,
+  HoursWiseResolvers,
+  TotalRevenueResolvers,
+  SiteRequestResolvers,
+  ReportPresetResolvers,
 ]

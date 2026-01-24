@@ -28,6 +28,8 @@ const HoursWiseSchema = new mongoose.Schema(
     totalRequests: { type: Number, default: 0 },
     costPerClick: { type: Number, default: 0 },
     matchRate: { type: Number, default: 0 },
+    appId: { type: String, default: null, index: true },
+    appName: { type: String, default: null },
     hours: {
       type: [HourStatsSchema],
       default: []
@@ -40,6 +42,7 @@ const HoursWiseSchema = new mongoose.Schema(
 );
 
 HoursWiseSchema.index({ site: 1, date: -1 });
+HoursWiseSchema.index({ appId: 1, date: -1 });
 
 HoursWiseSchema.plugin(mongoosePaginate);
 

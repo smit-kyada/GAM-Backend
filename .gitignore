@@ -13,6 +13,8 @@ dist/
 #ASSETS
 ASSETS
 
+scripts/
+
 # Package-lock
 package-lock.json
 
@@ -63,3 +65,12 @@ Thumbs.db
 
 # Enviroment files
 .env
+
+# Google Cloud Service Account credentials
+*.json
+!package.json
+!package-lock.json
+gam-360-*.json
+
+# Configuration files with secrets
+config/googleads.yaml

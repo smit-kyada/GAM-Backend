@@ -5,7 +5,6 @@ import { FilterQuery } from "../functions/generateFilterQuery.js";
 import { GenerateSiteTableObj } from "../functions/GenerateObj.js";
 import async from "async";
 import moment from "moment";
-import { getRangeReport, getReport } from "../functions/GenerateAdsenseReport.js";
 import { ObjectId } from 'mongodb';
 
 
@@ -1013,39 +1012,6 @@ export default {
         //     })
         // }),
 
-        getSiteTableReport: combineResolvers(isAdmin, (parent, args, { models, me }) => {
-            return new Promise(async (resolve, reject) => {
-
-                const filter = JSON.parse(args?.filter)
-
-                try {
-
-                    const reports = {};
-                    const ranges = ['TODAY', 'YESTERDAY', 'LAST_7_DAYS', 'MONTH_TO_DATE',];
-
-                    const reportPromises = ranges.map(range => getReport(range, false, filter?.sitename));
-
-                    const rangePromises = await getRangeReport(filter?.sitename);
-
-                    const yearPromises = await getReport("YEAR_TO_DATE", true, filter?.sitename);
-
-                    const reportResults = await Promise.all(reportPromises);
-
-                    reportResults.forEach((report, index) => { reports[ranges[index]] = report })
-
-                    reports[`LAST_MONTH`] = rangePromises
-
-                    reports[`YEAR_TO_DATE`] = yearPromises
-
-
-                    resolve(reports)
-
-                } catch (error) {
-                    reject(error)
-                }
-
-            })
-        }),
 
         // getDashBoardData: combineResolvers(isAuthenticated, (parent, args, { models, me }) => {
         //     return new Promise(async (resolve, reject) => {
